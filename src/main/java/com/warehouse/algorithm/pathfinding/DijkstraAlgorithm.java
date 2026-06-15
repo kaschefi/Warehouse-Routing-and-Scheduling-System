@@ -1,17 +1,17 @@
 package com.warehouse.algorithm.pathfinding;
+import com.warehouse.model.domain.Node;
 import com.warehouse.model.graph.Edge;
 import com.warehouse.model.graph.Graph;
 
 import java.util.List;
 import java.util.ArrayList;
 
-public class DijkstraAlgorithm<T> implements ShortestPathStrategy<T> {
-    
+public class DijkstraAlgorithm implements ShortestPathStrategy {
+
     @Override
-    public List<Edge<T>> findShortestPath(Graph<T> graph, Vertex<T> start, Vertex<T> end) {
-        // TODO: Implement Dijkstra's algorithm here!
-        // Requirement: Must implement algorithm yourself. Do not use built-in library pathfinding.
-        System.out.println("Executing Dijkstra's Algorithm...");
-        return new ArrayList<>(); // Return dummy list for now
+    public List<Edge> findShortestPath(Graph graph, Node start, Node end) {
+        // TODO: Complete actual algorithm internals in later step
+        System.out.println("Executing Dijkstra's Algorithm from " + start + " to " + end);
+        return new ArrayList<>();
     }
 }
