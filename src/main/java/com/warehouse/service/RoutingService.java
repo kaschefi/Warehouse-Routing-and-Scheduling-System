@@ -1,9 +1,8 @@
 package com.warehouse.service;
 import com.warehouse.algorithm.pathfinding.ShortestPathStrategy;
-import com.warehouse.model.domain.Location;
 import com.warehouse.model.graph.Edge;
 import com.warehouse.model.graph.Graph;
-import com.warehouse.model.graph.Vertex;
+
 import java.util.List;
 
 public class RoutingService {

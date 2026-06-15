@@ -1,17 +1,23 @@
 package com.warehouse.model.graph;
 
+import com.warehouse.model.domain.Node;
+
 public class Edge<T> {
-    private Vertex<T> source;
-    private Vertex<T> destination;
+    private Node source;
+    private Node destination;
     private double weight;
     
-    public Edge(Vertex<T> source, Vertex<T> destination, double weight) {
+    public Edge(Node source, Node destination, double weight) {
         this.source = source;
         this.destination = destination;
         this.weight = weight;
     }
     
-    public Vertex<T> getSource() { return source; }
-    public Vertex<T> getDestination() { return destination; }
+    public Node getSource() { return source; }
+    public Node getDestination() { return destination; }
     public double getWeight() { return weight; }
+    @Override
+    public String toString() {
+        return String.format("Edge: %s -> %s (Weight: %.1f)", source.getId(), destination.getId(), weight);
+    }
 }

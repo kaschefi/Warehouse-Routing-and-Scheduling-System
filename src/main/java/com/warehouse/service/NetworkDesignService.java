@@ -1,6 +1,5 @@
 package com.warehouse.service;
 import com.warehouse.algorithm.spanningtree.MinimumSpanningTreeStrategy;
-import com.warehouse.model.domain.Location;
 import com.warehouse.model.graph.Edge;
 import com.warehouse.model.graph.Graph;
 import java.util.List;

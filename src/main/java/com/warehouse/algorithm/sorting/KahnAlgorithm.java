@@ -1,13 +1,14 @@
 package com.warehouse.algorithm.sorting;
+import com.warehouse.model.domain.Task;
 import com.warehouse.model.graph.Graph;
-import com.warehouse.model.graph.Vertex;
+
 import java.util.List;
 import java.util.ArrayList;
 
-public class KahnAlgorithm<T> implements TopologicalSortStrategy<T> {
-    
+public class KahnAlgorithm implements TopologicalSortStrategy {
+
     @Override
-    public List<Vertex<T>> sort(Graph<T> graph) {
+    public List<Task> sort(List<Task> tasks) {
         // TODO: Implement Topological Sort (e.g. Kahn's or DFS) here!
         System.out.println("Executing Topological Sort...");
         return new ArrayList<>(); // Return dummy list for now
