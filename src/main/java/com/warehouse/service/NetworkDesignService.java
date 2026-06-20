@@ -9,12 +9,16 @@ import java.util.List;
  * Service managing infrastructure optimizations and network planning tasks.
  */
 public class NetworkDesignService {
-    private final Graph warehouseMap;
+    private Graph warehouseMap;
     private final MinimumSpanningTreeStrategy mstStrategy;
 
     public NetworkDesignService(Graph warehouseMap, MinimumSpanningTreeStrategy mstStrategy) {
         this.warehouseMap = warehouseMap;
         this.mstStrategy = mstStrategy;
+    }
+
+    public void setWarehouseMap(Graph warehouseMap) {
+        this.warehouseMap = warehouseMap;
     }
 
     public List<Edge> generateOptimalNetwork() {

@@ -23,6 +23,10 @@ public class TaskSchedulingService {
         }
     }
 
+    public void clearTasks() {
+        this.tasks.clear();
+    }
+
     /**
      * Computes the chronological roadmap order for execution.
      * @return Sorted list of tasks.
