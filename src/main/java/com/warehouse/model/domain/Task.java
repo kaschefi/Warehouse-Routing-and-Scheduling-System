@@ -12,11 +12,16 @@ public class Task {
     private final String id;
     private final String name;
     private final List<Task> dependencies;
+    private String targetNodeId;
+    private boolean active;
+    private double progress;
 
     public Task(String id, String name) {
         this.id = id;
         this.name = name;
         this.dependencies = new ArrayList<>();
+        this.active = false;
+        this.progress = 0.0;
     }
 
     public String getId() {
@@ -25,6 +30,30 @@ public class Task {
 
     public String getName() {
         return name;
+    }
+
+    public String getTargetNodeId() {
+        return targetNodeId;
+    }
+
+    public void setTargetNodeId(String targetNodeId) {
+        this.targetNodeId = targetNodeId;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public double getProgress() {
+        return progress;
+    }
+
+    public void setProgress(double progress) {
+        this.progress = progress;
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.warehouse.ui;
 
-import com.warehouse.model.domain.NodeType;
+import com.warehouse.ui.WarehouseGridView.PlacementMode;
+import com.warehouse.service.RobotManagementService;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -16,6 +17,7 @@ public class LeftSidebarView extends VBox {
 
     private final WarehouseGridView gridView;
     private final StatusBarView statusBar;
+    private final RobotManagementService robotManagementService;
 
     private Button btnSelect;
     private Button btnObstacle;
@@ -24,59 +26,59 @@ public class LeftSidebarView extends VBox {
     private Button btnRobot;
     private Button btnClear;
 
-    public LeftSidebarView(WarehouseGridView gridView, StatusBarView statusBar) {
+    public LeftSidebarView(WarehouseGridView gridView, StatusBarView statusBar, RobotManagementService robotManagementService) {
         this.gridView = gridView;
         this.statusBar = statusBar;
+        this.robotManagementService = robotManagementService;
 
-        this.setPadding(new Insets(15));
-        this.setSpacing(10);
-        this.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #e2e8f0; -fx-border-width: 0 1 0 0;");
-        this.setPrefWidth(200);
+        this.getStyleClass().add("left-sidebar");
 
-        Label title = new Label("Warehouse Controls");
-        title.setFont(Font.font("System", FontWeight.BOLD, 14));
-        title.setStyle("-fx-text-fill: #2d3748; -fx-padding: 0 0 10 0;");
+        VBox card = new VBox(10);
+        card.getStyleClass().add("tactical-card");
+
+        Label title = new Label("WAREHOUSE CONTROLS");
+        title.getStyleClass().add("card-title");
 
         // Select mode button
         btnSelect = new Button("Select Node");
         btnSelect.setMaxWidth(Double.MAX_VALUE);
-        btnSelect.setStyle("-fx-background-color: #ffffff; -fx-text-fill: #4a5568; -fx-border-color: #cbd5e0; -fx-border-radius: 4; -fx-background-radius: 4;");
         btnSelect.setOnAction(e -> {
-            gridView.setCurrentPlacementMode(NodeType.EMPTY);
-            updateButtonStyles(null);
+            gridView.setCurrentPlacementMode(PlacementMode.SELECT);
+            updateButtonStyles(btnSelect);
         });
 
         // Placing mode buttons
-        btnObstacle = createButton("Add Obstacle", NodeType.OBSTACLE);
-        btnStation = createButton("Add Charging Station", NodeType.CHARGING_STATION);
-        btnDropZone = createButton("Add Drop Zone", NodeType.DROP_ZONE);
+        btnObstacle = createButton("Add Obstacle", PlacementMode.OBSTACLE);
+        btnStation = createButton("Add Charging Station", PlacementMode.CHARGING_STATION);
+        btnDropZone = createButton("Add Drop Zone", PlacementMode.DROP_ZONE);
 
         btnRobot = new Button("Add Robot");
         btnRobot.setMaxWidth(Double.MAX_VALUE);
-        btnRobot.setStyle("-fx-background-color: #ffffff; -fx-text-fill: #4a5568; -fx-border-color: #cbd5e0; -fx-border-radius: 4; -fx-background-radius: 4;");
         btnRobot.setOnAction(e -> {
-            statusBar.setStatus("Add Robot functionality is not implemented yet.");
+            gridView.setCurrentPlacementMode(PlacementMode.ROBOT);
+            updateButtonStyles(btnRobot);
         });
 
         btnClear = new Button("Clear Map");
         btnClear.setMaxWidth(Double.MAX_VALUE);
-        btnClear.setStyle("-fx-background-color: #ffffff; -fx-text-fill: #e53e3e; -fx-border-color: #fc8181; -fx-border-radius: 4; -fx-background-radius: 4;");
+        btnClear.getStyleClass().add("clear-btn");
         btnClear.setOnAction(e -> {
             gridView.clearMap();
-            gridView.setCurrentPlacementMode(NodeType.EMPTY);
-            updateButtonStyles(null);
+            robotManagementService.clearFleet();
+            gridView.setCurrentPlacementMode(PlacementMode.SELECT);
+            updateButtonStyles(btnSelect);
         });
 
-        this.getChildren().addAll(title, btnSelect, btnObstacle, btnStation, btnDropZone, btnRobot, btnClear);
+        card.getChildren().addAll(title, btnSelect, btnObstacle, btnStation, btnDropZone, btnRobot, btnClear);
+        this.getChildren().add(card);
         
         // Initially set Select mode as highlighted
-        updateButtonStyles(null);
+        updateButtonStyles(btnSelect);
     }
 
-    private Button createButton(String text, NodeType mode) {
+    private Button createButton(String text, PlacementMode mode) {
         Button btn = new Button(text);
         btn.setMaxWidth(Double.MAX_VALUE);
-        btn.setStyle("-fx-background-color: #ffffff; -fx-text-fill: #4a5568; -fx-border-color: #cbd5e0; -fx-border-radius: 4; -fx-background-radius: 4;");
         btn.setOnAction(e -> {
             gridView.setCurrentPlacementMode(mode);
             updateButtonStyles(btn);
@@ -85,33 +87,35 @@ public class LeftSidebarView extends VBox {
     }
 
     private void updateButtonStyles(Button activeBtn) {
-        // If current placement mode is EMPTY, select node is active
-        if (gridView.getCurrentPlacementMode() == NodeType.EMPTY) {
+        // If current placement mode is SELECT, select node is active
+        if (gridView.getCurrentPlacementMode() == PlacementMode.SELECT) {
             activeBtn = btnSelect;
         }
 
-        String normalStyle = "-fx-background-color: #ffffff; -fx-text-fill: #4a5568; -fx-border-color: #cbd5e0; -fx-border-radius: 4; -fx-background-radius: 4;";
-        btnSelect.setStyle(normalStyle);
-        btnObstacle.setStyle(normalStyle);
-        btnStation.setStyle(normalStyle);
-        btnDropZone.setStyle(normalStyle);
+        // Clear active styles
+        btnSelect.getStyleClass().removeAll("active-select", "active-obstacle", "active-station", "active-dropzone", "active-robot");
+        btnObstacle.getStyleClass().removeAll("active-select", "active-obstacle", "active-station", "active-dropzone", "active-robot");
+        btnStation.getStyleClass().removeAll("active-select", "active-obstacle", "active-station", "active-dropzone", "active-robot");
+        btnDropZone.getStyleClass().removeAll("active-select", "active-obstacle", "active-station", "active-dropzone", "active-robot");
+        btnRobot.getStyleClass().removeAll("active-select", "active-obstacle", "active-station", "active-dropzone", "active-robot");
 
         if (activeBtn != null) {
-            String activeStyle = "";
             if (activeBtn == btnSelect) {
-                activeStyle = "-fx-background-color: #3182ce; -fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-background-radius: 4;";
+                btnSelect.getStyleClass().add("active-select");
                 statusBar.setStatus("Active tool: Select / Navigation");
             } else if (activeBtn == btnObstacle) {
-                activeStyle = "-fx-background-color: #e74c3c; -fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-background-radius: 4;";
+                btnObstacle.getStyleClass().add("active-obstacle");
                 statusBar.setStatus("Active tool: Add Obstacle (Paint on grid)");
             } else if (activeBtn == btnStation) {
-                activeStyle = "-fx-background-color: #f39c12; -fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-background-radius: 4;";
+                btnStation.getStyleClass().add("active-station");
                 statusBar.setStatus("Active tool: Add Charging Station (Paint on grid)");
             } else if (activeBtn == btnDropZone) {
-                activeStyle = "-fx-background-color: #2ecc71; -fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-background-radius: 4;";
+                btnDropZone.getStyleClass().add("active-dropzone");
                 statusBar.setStatus("Active tool: Add Drop Zone (Paint on grid)");
+            } else if (activeBtn == btnRobot) {
+                btnRobot.getStyleClass().add("active-robot");
+                statusBar.setStatus("Active tool: Add Robot (Paint on grid)");
             }
-            activeBtn.setStyle(activeStyle);
         }
     }
 }

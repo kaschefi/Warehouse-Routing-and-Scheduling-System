@@ -26,6 +26,10 @@ public class RoutingService {
      * * @param gridMatrix A 2D array matching the rows/cols configuration of the UI grid.
      */
     public void generateGraphFromGrid(NodeType[][] gridMatrix) {
+        generateGraphFromGrid(gridMatrix, java.util.Collections.emptyList());
+    }
+
+    public void generateGraphFromGrid(NodeType[][] gridMatrix, List<String> occupiedNodeIds) {
         // Reset to an empty graph
         this.warehouseMap = new AdjacencyListGraph();
 
@@ -67,7 +71,11 @@ public class RoutingService {
 
                         // If the neighbor exists (is walkable), create a directed edge path
                         if (neighborNode != null) {
-                            Edge stepEdge = new Edge(currentNode, neighborNode, 1.0);
+                            double weight = 1.0;
+                            if (occupiedNodeIds != null && occupiedNodeIds.contains(neighborNode.getId())) {
+                                weight = 50.0;
+                            }
+                            Edge stepEdge = new Edge(currentNode, neighborNode, weight);
                             warehouseMap.addEdge(stepEdge);
                         }
                     }

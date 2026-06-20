@@ -6,6 +6,7 @@ import com.warehouse.algorithm.sorting.KahnAlgorithm;
 import com.warehouse.service.NetworkDesignService;
 import com.warehouse.service.RoutingService;
 import com.warehouse.service.TaskSchedulingService;
+import com.warehouse.service.RobotManagementService;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
@@ -20,6 +21,7 @@ public class MainView extends BorderPane {
     private final RoutingService routingService;
     private final NetworkDesignService networkDesignService;
     private final TaskSchedulingService taskSchedulingService;
+    private final RobotManagementService robotManagementService;
 
     private StatusBarView statusBar;
     private WarehouseGridView gridView;
@@ -37,6 +39,7 @@ public class MainView extends BorderPane {
         // Start NetworkDesignService with the initial Graph from RoutingService
         this.networkDesignService = new NetworkDesignService(routingService.getWarehouseMap(), prim);
         this.taskSchedulingService = new TaskSchedulingService(kahn);
+        this.robotManagementService = new RobotManagementService();
 
         setupMenu();
         setupComponents();
@@ -60,11 +63,11 @@ public class MainView extends BorderPane {
         statusBar = new StatusBarView();
         
         // Pass shared services and UI references down via constructor injection
-        rightSidebar = new RightSidebarView(routingService, networkDesignService, taskSchedulingService, statusBar);
-        gridView = new WarehouseGridView(statusBar, routingService, rightSidebar);
+        rightSidebar = new RightSidebarView(routingService, networkDesignService, taskSchedulingService, statusBar, robotManagementService);
+        gridView = new WarehouseGridView(statusBar, routingService, rightSidebar, robotManagementService);
         rightSidebar.setGridView(gridView);
         
-        leftSidebar = new LeftSidebarView(gridView, statusBar);
+        leftSidebar = new LeftSidebarView(gridView, statusBar, robotManagementService);
 
         this.setCenter(gridView);
         this.setLeft(leftSidebar);

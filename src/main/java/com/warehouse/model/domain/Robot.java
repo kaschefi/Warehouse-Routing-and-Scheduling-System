@@ -10,11 +10,15 @@ public class Robot {
     private final String id;
     private final String name;
     private Node currentNode;
+    private double batteryLevel = 100.0;
+    private String activeTaskId = "None";
 
     public Robot(String id, String name, Node currentNode) {
         this.id = id;
         this.name = name;
         this.currentNode = currentNode;
+        this.batteryLevel = 100.0;
+        this.activeTaskId = "None";
     }
 
     public String getId() {
@@ -31,6 +35,22 @@ public class Robot {
 
     public void setCurrentNode(Node currentNode) {
         this.currentNode = currentNode;
+    }
+
+    public double getBatteryLevel() {
+        return batteryLevel;
+    }
+
+    public void setBatteryLevel(double batteryLevel) {
+        this.batteryLevel = Math.max(0.0, Math.min(100.0, batteryLevel));
+    }
+
+    public String getActiveTaskId() {
+        return activeTaskId;
+    }
+
+    public void setActiveTaskId(String activeTaskId) {
+        this.activeTaskId = activeTaskId;
     }
 
     @Override

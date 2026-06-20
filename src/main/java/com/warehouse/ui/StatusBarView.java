@@ -12,14 +12,32 @@ public class StatusBarView extends HBox {
     private Label statusLabel;
 
     public StatusBarView() {
-        this.setPadding(new Insets(5, 10, 5, 10));
-        this.setStyle("-fx-background-color: #e0e0e0; -fx-border-color: #cccccc; -fx-border-width: 1 0 0 0;");
+        this.getStyleClass().add("status-bar-pane");
 
-        statusLabel = new Label("Ready");
+        statusLabel = new Label();
+        statusLabel.getStyleClass().add("status-default");
         this.getChildren().add(statusLabel);
+        
+        setStatus("SYSTEM READY");
     }
 
     public void setStatus(String message) {
-        statusLabel.setText(message);
+        if (message == null) {
+            message = "";
+        }
+        
+        statusLabel.getStyleClass().removeAll("status-default", "status-calculation", "status-error");
+        
+        String lower = message.toLowerCase();
+        if (lower.contains("error") || lower.contains("warning") || lower.contains("circular") || lower.contains("deadlock") || lower.contains("loop") || lower.contains("impossible")) {
+            statusLabel.getStyleClass().add("status-error");
+            statusLabel.setText("> [ALERT] " + message.toUpperCase());
+        } else if (lower.contains("calculated") || lower.contains("established") || lower.contains("cost") || lower.contains("schedule") || lower.contains("roadmap") || lower.contains("order") || lower.contains("steps")) {
+            statusLabel.getStyleClass().add("status-calculation");
+            statusLabel.setText("> [COMPUTE] " + message.toUpperCase());
+        } else {
+            statusLabel.getStyleClass().add("status-default");
+            statusLabel.setText("> " + message.toUpperCase());
+        }
     }
 }
