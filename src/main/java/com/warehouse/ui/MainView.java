@@ -83,7 +83,7 @@ public class MainView extends BorderPane {
         gridView = new WarehouseGridView(statusBar, routingService, rightSidebar, robotManagementService);
         rightSidebar.setGridView(gridView);
 
-        leftSidebar = new LeftSidebarView(gridView, statusBar, robotManagementService);
+        leftSidebar = new LeftSidebarView(gridView, statusBar, robotManagementService, rightSidebar);
 
         // ── Horizontal SplitPane: left | center grid | right ─────────────────
         SplitPane horizontalSplit = new SplitPane();

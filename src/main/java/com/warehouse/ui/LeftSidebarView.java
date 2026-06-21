@@ -18,6 +18,7 @@ public class LeftSidebarView extends VBox {
     private final WarehouseGridView gridView;
     private final StatusBarView statusBar;
     private final RobotManagementService robotManagementService;
+    private final RightSidebarView rightSidebar;
 
     private Button btnSelect;
     private Button btnObstacle;
@@ -25,11 +26,13 @@ public class LeftSidebarView extends VBox {
     private Button btnDropZone;
     private Button btnRobot;
     private Button btnClear;
+    private Button btnLoadDemo;
 
-    public LeftSidebarView(WarehouseGridView gridView, StatusBarView statusBar, RobotManagementService robotManagementService) {
+    public LeftSidebarView(WarehouseGridView gridView, StatusBarView statusBar, RobotManagementService robotManagementService, RightSidebarView rightSidebar) {
         this.gridView = gridView;
         this.statusBar = statusBar;
         this.robotManagementService = robotManagementService;
+        this.rightSidebar = rightSidebar;
 
         this.getStyleClass().add("left-sidebar");
 
@@ -59,17 +62,33 @@ public class LeftSidebarView extends VBox {
             updateButtonStyles(btnRobot);
         });
 
+        btnLoadDemo = new Button("Load Demo Scenario");
+        btnLoadDemo.setMaxWidth(Double.MAX_VALUE);
+        btnLoadDemo.getStyleClass().add("load-demo-btn");
+        btnLoadDemo.setOnAction(e -> {
+            gridView.clearMap();
+            robotManagementService.clearFleet();
+            rightSidebar.clearCustomTasks();
+
+            gridView.loadDemoScenario();
+            rightSidebar.loadDemoScenarioTasks(gridView.getStationLabels());
+
+            gridView.setCurrentPlacementMode(PlacementMode.SELECT);
+            updateButtonStyles(btnSelect);
+        });
+
         btnClear = new Button("Clear Map");
         btnClear.setMaxWidth(Double.MAX_VALUE);
         btnClear.getStyleClass().add("clear-btn");
         btnClear.setOnAction(e -> {
             gridView.clearMap();
             robotManagementService.clearFleet();
+            rightSidebar.clearCustomTasks();
             gridView.setCurrentPlacementMode(PlacementMode.SELECT);
             updateButtonStyles(btnSelect);
         });
 
-        card.getChildren().addAll(title, btnSelect, btnObstacle, btnStation, btnDropZone, btnRobot, btnClear);
+        card.getChildren().addAll(title, btnSelect, btnObstacle, btnStation, btnDropZone, btnRobot, btnLoadDemo, btnClear);
         this.getChildren().add(card);
         
         // Initially set Select mode as highlighted

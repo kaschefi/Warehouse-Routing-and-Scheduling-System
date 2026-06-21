@@ -934,6 +934,127 @@ public class WarehouseGridView extends GridPane {
         statusBar.setStatus("Map cleared.");
     }
 
+    public void placeStationProgrammatic(int col, int row, NodeType type) {
+        if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
+        String cellId = "N_" + col + "_" + row;
+        StackPane cell = cellGrid[row][col];
+        cell.getChildren().removeIf(node -> node instanceof Text);
+        stationLabels.remove(cellId);
+        gridState[row][col] = type;
+        Rectangle rect = (Rectangle) cell.getChildren().get(0);
+
+        if (type == NodeType.CHARGING_STATION) {
+            chargingStationCounter++;
+            String label = "CS" + chargingStationCounter;
+            stationLabels.put(cellId, label);
+            Text textLabel = new Text(label);
+            textLabel.setFill(Color.web("#FFB703")); // Glowing amber
+            textLabel.setFont(Font.font("Courier New", FontWeight.BOLD, 12));
+
+            javafx.scene.effect.DropShadow glow = new javafx.scene.effect.DropShadow();
+            glow.setColor(Color.web("#FFB703"));
+            glow.setRadius(3.0);
+            glow.setSpread(0.2);
+            textLabel.setEffect(glow);
+
+            rect.setStroke(Color.web("#FFB703"));
+            rect.setStrokeWidth(1.5);
+            cell.getChildren().add(textLabel);
+        } else if (type == NodeType.DROP_ZONE) {
+            dropZoneCounter++;
+            String label = "DZ" + dropZoneCounter;
+            stationLabels.put(cellId, label);
+            Text textLabel = new Text(label);
+            textLabel.setFill(Color.web("#00FF66")); // Glowing green
+            textLabel.setFont(Font.font("Courier New", FontWeight.BOLD, 12));
+
+            javafx.scene.effect.DropShadow glow = new javafx.scene.effect.DropShadow();
+            glow.setColor(Color.web("#00FF66"));
+            glow.setRadius(3.0);
+            glow.setSpread(0.2);
+            textLabel.setEffect(glow);
+
+            rect.setStroke(Color.web("#00FF66"));
+            rect.setStrokeWidth(1.5);
+            cell.getChildren().add(textLabel);
+        }
+    }
+
+    public void placeRobotProgrammatic(int col, int row, double batteryLevel) {
+        if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
+        String cellId = "N_" + col + "_" + row;
+
+        routingService.generateGraphFromGrid(gridState);
+        Graph graph = routingService.getWarehouseMap();
+        Node targetNode = null;
+        for (Node n : graph.getNodes()) {
+            if (n.getId().equals(cellId)) {
+                targetNode = n;
+                break;
+            }
+        }
+        if (targetNode == null) {
+            targetNode = new Node(cellId, col, row, gridState[row][col]);
+        }
+
+        Robot robot = robotManagementService.registerRobot(targetNode);
+        robot.setBatteryLevel(batteryLevel);
+
+        // Render robot visual
+        StackPane cell = cellGrid[row][col];
+        for (javafx.scene.Node child : new java.util.ArrayList<>(cell.getChildren())) {
+            if (child.getId() != null && child.getId().startsWith("robot-visual-")) {
+                stopRobotVisualAnimations(child);
+            }
+        }
+        cell.getChildren().removeIf(node -> node.getId() != null && node.getId().startsWith("robot-visual-"));
+        cell.getChildren().add(createRobotVisual(robot));
+        cell.toFront();
+    }
+
+    public void placeObstacleProgrammatic(int col, int row) {
+        if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
+        String cellId = "N_" + col + "_" + row;
+        StackPane cell = cellGrid[row][col];
+        cell.getChildren().removeIf(node -> node instanceof Text);
+        stationLabels.remove(cellId);
+        gridState[row][col] = NodeType.OBSTACLE;
+        Rectangle rect = (Rectangle) cell.getChildren().get(0);
+        rect.setFill(Color.web("#FF3333"));
+        rect.setStroke(Color.web("#00FF66", 0.15));
+        rect.setStrokeWidth(1.0);
+    }
+
+    public void loadDemoScenario() {
+        // 1. Place Charging Stations CS1 at (1,13) and CS2 at (13,2)
+        placeStationProgrammatic(1, 13, NodeType.CHARGING_STATION);
+        placeStationProgrammatic(13, 2, NodeType.CHARGING_STATION);
+
+        // 2. Place 12 Drop Zones scattered randomly
+        placeStationProgrammatic(3, 4, NodeType.DROP_ZONE);
+        placeStationProgrammatic(4, 10, NodeType.DROP_ZONE);
+        placeStationProgrammatic(11, 3, NodeType.DROP_ZONE);
+        placeStationProgrammatic(10, 11, NodeType.DROP_ZONE);
+        placeStationProgrammatic(7, 2, NodeType.DROP_ZONE);
+        placeStationProgrammatic(8, 12, NodeType.DROP_ZONE);
+        placeStationProgrammatic(2, 8, NodeType.DROP_ZONE);
+        placeStationProgrammatic(12, 7, NodeType.DROP_ZONE);
+        placeStationProgrammatic(6, 6, NodeType.DROP_ZONE);
+        placeStationProgrammatic(8, 7, NodeType.DROP_ZONE);
+        placeStationProgrammatic(5, 13, NodeType.DROP_ZONE);
+        placeStationProgrammatic(13, 10, NodeType.DROP_ZONE);
+
+        // 3. Place 3 Robots, all initialized with 21.0% battery to trigger charging
+        placeRobotProgrammatic(0, 0, 21.0);
+        placeRobotProgrammatic(14, 0, 21.0);
+        placeRobotProgrammatic(0, 14, 21.0);
+
+        // 4. Place obstacles around DZ12 (13, 10): Left (12, 10), Top (13, 9), Bottom (13, 11)
+        placeObstacleProgrammatic(12, 10);
+        placeObstacleProgrammatic(13, 9);
+        placeObstacleProgrammatic(13, 11);
+    }
+
     public NodeType[][] getGridState() {
         return gridState;
     }
@@ -1035,9 +1156,9 @@ public class WarehouseGridView extends GridPane {
         }
 
         if (startNode.equals(destNode)) {
+            StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
             if (destNode.getNodeType() == NodeType.CHARGING_STATION) {
                 robot.setBatteryLevel(100.0);
-                StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
                 updateRobotTelemetryHUD(robot, visual);
             }
             nextTask.setActive(false);
@@ -1045,6 +1166,9 @@ public class WarehouseGridView extends GridPane {
             rightSidebar.refreshCreatedTasksListView();
             javafx.animation.PauseTransition p = new javafx.animation.PauseTransition(
                     javafx.util.Duration.seconds(0.8));
+            if (visual != null) {
+                visual.getProperties().put("taskPause", p);
+            }
             p.setOnFinished(ev -> executeNextTaskMulti(robot, taskQueue, sidebar, remaining));
             p.play();
             return;
@@ -1081,6 +1205,9 @@ public class WarehouseGridView extends GridPane {
             rightSidebar.refreshCreatedTasksListView();
             javafx.animation.PauseTransition p = new javafx.animation.PauseTransition(
                     javafx.util.Duration.seconds(0.8));
+            if (visual != null) {
+                visual.getProperties().put("taskPause", p);
+            }
             p.setOnFinished(ev -> executeNextTaskMulti(robot, taskQueue, sidebar, remaining));
             p.play();
         }, () -> executeNextTaskMulti(robot, taskQueue, sidebar, remaining));
@@ -1129,10 +1256,10 @@ public class WarehouseGridView extends GridPane {
         if (startNode.equals(destNode)) {
             statusBar.setStatus(
                     "Robot " + robot.getId() + " is already at " + destNode.getId() + " for " + nextTask.getName());
+            StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
             if (destNode.getNodeType() == NodeType.CHARGING_STATION
                     || gridState[destNode.getY()][destNode.getX()] == NodeType.CHARGING_STATION) {
                 robot.setBatteryLevel(100.0);
-                StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
                 updateRobotTelemetryHUD(robot, visual);
                 statusBar.setStatus("Robot " + robot.getId() + " recharged to 100% at " + destNode.getId());
             }
@@ -1142,6 +1269,9 @@ public class WarehouseGridView extends GridPane {
 
             javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
                     javafx.util.Duration.seconds(1.0));
+            if (visual != null) {
+                visual.getProperties().put("taskPause", pause);
+            }
             pause.setOnFinished(e -> executeNextTask(robot, taskQueue));
             pause.play();
             return;
@@ -1186,6 +1316,9 @@ public class WarehouseGridView extends GridPane {
 
             javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
                     javafx.util.Duration.seconds(1.0));
+            if (visual != null) {
+                visual.getProperties().put("taskPause", pause);
+            }
             pause.setOnFinished(e -> executeNextTask(robot, taskQueue));
             pause.play();
         }, () -> executeNextTask(robot, taskQueue));
@@ -1207,6 +1340,14 @@ public class WarehouseGridView extends GridPane {
             return;
         }
 
+        StackPane robotVisual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
+        if (robotVisual == null) {
+            Edge firstEdge = path.get(pathIndex);
+            Node srcNode = firstEdge.getSource();
+            robotVisual = createRobotVisual(robot);
+            cellGrid[srcNode.getY()][srcNode.getX()].getChildren().add(robotVisual);
+        }
+
         // Before stepping onto a new tile, check if batteryLevel < 20.0 (Smart Check)
         if (!isEmergencyCharging && robot.getBatteryLevel() < 20.0) {
             statusBar.setStatus("Warning: Robot " + robot.getId() + " battery low ("
@@ -1223,7 +1364,6 @@ public class WarehouseGridView extends GridPane {
             // Set active task ID to Charging
             robot.setActiveTaskId("CHARGING");
             robotReservations.remove(robot.getId());
-            StackPane robotVisual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
             updateRobotTelemetryHUD(robot, robotVisual);
             rightSidebar.refreshCreatedTasksListView();
 
@@ -1290,6 +1430,9 @@ public class WarehouseGridView extends GridPane {
                         // Recharge transition (1.5 seconds)
                         javafx.animation.PauseTransition rechargeTimer = new javafx.animation.PauseTransition(
                                 javafx.util.Duration.seconds(1.5));
+                        if (visual != null) {
+                            visual.getProperties().put("rechargeTimer", rechargeTimer);
+                        }
                         rechargeTimer.setOnFinished(evt -> {
                             statusBar.setStatus(
                                     "Robot " + robot.getId() + " fully recharged (100.0%). Resuming task queue.");
@@ -1332,6 +1475,27 @@ public class WarehouseGridView extends GridPane {
         }
 
         if (nextTileOccupied) {
+            Node finalDest = path.get(path.size() - 1).getDestination();
+
+            // If the next tile is the final destination, we cannot bypass it with a detour.
+            // Just wait for it to clear.
+            if (destNode.getId().equals(finalDest.getId())) {
+                setRobotMovingState(robot, false);
+                statusBar.setStatus("Warning: Destination " + destNode.getId() + " is occupied. Robot " + robot.getId() + " is waiting...");
+                javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
+                        javafx.util.Duration.millis(500));
+                if (robotVisual != null) {
+                    robotVisual.getProperties().put("occupiedWaitPause", pause);
+                }
+                pause.setOnFinished(e -> {
+                    setRobotMovingState(robot, true);
+                    executeNextPathStep(robot, path, pathIndex, activeTask, taskQueue, isEmergencyCharging, onArrival,
+                            onResumeQueue);
+                });
+                pause.play();
+                return;
+            }
+
             statusBar.setStatus("Recalculating detour for robot " + robot.getId() + " because next tile "
                     + destNode.getId() + " is occupied.");
 
@@ -1351,35 +1515,57 @@ public class WarehouseGridView extends GridPane {
             // Generate graph layout with coworker cells as penalty weight (100.0)
             routingService.generateGraphFromGrid(gridState, occupied);
 
-            // Calculate detour from current node (robot's current position) to final
-            // destination
-            Node finalDest = path.get(path.size() - 1).getDestination();
+            // Calculate detour from current node (robot's current position) to final destination
             List<Edge> detourPath = routingService.calculateRoute(robot.getCurrentNode(), finalDest);
 
             if (detourPath != null && !detourPath.isEmpty()) {
-                // Seamlessly update the remaining path steps
-                activeRobotPaths.put(robot.getId(), detourPath);
-                redrawActiveGridLayers();
+                // Check if the first step of the detour path is occupied
+                Node nextDetourNode = detourPath.get(0).getDestination();
+                boolean detourOccupied = false;
+                for (Robot r : robotManagementService.getActiveFleet()) {
+                    if (!r.getId().equals(robot.getId())) {
+                        if (r.getCurrentNode() != null && r.getCurrentNode().getX() == nextDetourNode.getX()
+                                && r.getCurrentNode().getY() == nextDetourNode.getY()) {
+                            detourOccupied = true;
+                            break;
+                        }
+                        String reserved = robotReservations.get(r.getId());
+                        if (reserved != null && reserved.equals(nextDetourNode.getId())) {
+                            detourOccupied = true;
+                            break;
+                        }
+                    }
+                }
 
-                // Recursively execute from step 0 of the detour path
-                executeNextPathStep(robot, detourPath, 0, activeTask, taskQueue, isEmergencyCharging, onArrival,
-                        onResumeQueue);
-                return;
-            } else {
-                setRobotMovingState(robot, false);
-                statusBar.setStatus(
-                        "Warning: No detour path found for robot " + robot.getId() + ". Waiting for path to clear...");
-                // Wait for a short moment and try again
-                javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
-                        javafx.util.Duration.millis(500));
-                pause.setOnFinished(e -> {
-                    setRobotMovingState(robot, true);
-                    executeNextPathStep(robot, path, pathIndex, activeTask, taskQueue, isEmergencyCharging, onArrival,
+                if (!detourOccupied) {
+                    // Seamlessly update the remaining path steps
+                    activeRobotPaths.put(robot.getId(), detourPath);
+                    redrawActiveGridLayers();
+
+                    // Recursively execute from step 0 of the detour path
+                    executeNextPathStep(robot, detourPath, 0, activeTask, taskQueue, isEmergencyCharging, onArrival,
                             onResumeQueue);
-                });
-                pause.play();
-                return;
+                    return;
+                }
             }
+
+            // Fallback: If no detour is found or the detour path's first step is also occupied,
+            // wait for a short moment and try the original path step again.
+            setRobotMovingState(robot, false);
+            statusBar.setStatus(
+                    "Warning: No clear detour found for robot " + robot.getId() + ". Waiting...");
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
+                    javafx.util.Duration.millis(500));
+            if (robotVisual != null) {
+                robotVisual.getProperties().put("detourWaitPause", pause);
+            }
+            pause.setOnFinished(e -> {
+                setRobotMovingState(robot, true);
+                executeNextPathStep(robot, path, pathIndex, activeTask, taskQueue, isEmergencyCharging, onArrival,
+                        onResumeQueue);
+            });
+            pause.play();
+            return;
         }
 
         // If start of a path, set arms to moving (tilt back)
@@ -1392,12 +1578,6 @@ public class WarehouseGridView extends GridPane {
 
         // Deduct battery
         robot.setBatteryLevel(robot.getBatteryLevel() - 1.5);
-
-        StackPane robotVisual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
-        if (robotVisual == null) {
-            robotVisual = createRobotVisual(robot);
-            cellGrid[srcNode.getY()][srcNode.getX()].getChildren().add(robotVisual);
-        }
 
         // Bring the source cell containing the robot visual to front so it renders on top during movement
         cellGrid[srcNode.getY()][srcNode.getX()].toFront();
@@ -1492,9 +1672,15 @@ public class WarehouseGridView extends GridPane {
 
         if (rotTimeline != null) {
             javafx.animation.ParallelTransition pt = new javafx.animation.ParallelTransition(rotTimeline, tt);
+            if (robotVisual != null) {
+                robotVisual.getProperties().put("activeMoveTransition", pt);
+            }
             pt.setOnFinished(evt -> onFinishedAction.run());
             pt.play();
         } else {
+            if (robotVisual != null) {
+                robotVisual.getProperties().put("activeMoveTransition", tt);
+            }
             tt.setOnFinished(evt -> onFinishedAction.run());
             tt.play();
         }

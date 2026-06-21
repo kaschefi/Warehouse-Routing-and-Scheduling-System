@@ -677,6 +677,101 @@ public class RightSidebarView extends VBox {
             createdTasksListView.getSelectionModel().select(sel);
     }
 
+    public void loadDemoScenarioTasks(java.util.Map<String, String> cellIdToLabel) {
+        customTaskList.clear();
+
+        String dz1 = findCellIdByLabel(cellIdToLabel, "DZ1");
+        String dz2 = findCellIdByLabel(cellIdToLabel, "DZ2");
+        String dz3 = findCellIdByLabel(cellIdToLabel, "DZ3");
+        String dz4 = findCellIdByLabel(cellIdToLabel, "DZ4");
+        String dz5 = findCellIdByLabel(cellIdToLabel, "DZ5");
+        String dz6 = findCellIdByLabel(cellIdToLabel, "DZ6");
+        String dz7 = findCellIdByLabel(cellIdToLabel, "DZ7");
+        String dz8 = findCellIdByLabel(cellIdToLabel, "DZ8");
+        String dz9 = findCellIdByLabel(cellIdToLabel, "DZ9");
+        String dz10 = findCellIdByLabel(cellIdToLabel, "DZ10");
+        String dz11 = findCellIdByLabel(cellIdToLabel, "DZ11");
+        String dz12 = findCellIdByLabel(cellIdToLabel, "DZ12");
+
+        Task t1 = new Task("T1", "Aisle Pick Alpha");
+        t1.setTargetNodeId(dz1);
+        t1.setAssignedRobotId("R1");
+
+        Task t2 = new Task("T2", "Aisle Pick Beta");
+        t2.setTargetNodeId(dz2);
+        t2.setAssignedRobotId("R1");
+
+        Task t3 = new Task("T3", "Aisle Pick Gamma");
+        t3.setTargetNodeId(dz3);
+        t3.setAssignedRobotId("R1");
+        t3.addDependency(t2);
+
+        Task t4 = new Task("T4", "Shelf Retrieval X");
+        t4.setTargetNodeId(dz4);
+        t4.setAssignedRobotId("R1");
+        t4.addDependency(t3);
+
+        Task t5 = new Task("T5", "Consolidation Y");
+        t5.setTargetNodeId(dz5);
+        t5.setAssignedRobotId("R2");
+
+        Task t6 = new Task("T6", "Aisle Sort Delta");
+        t6.setTargetNodeId(dz6);
+        t6.setAssignedRobotId("R2");
+
+        Task t7 = new Task("T7", "Express Delivery E");
+        t7.setTargetNodeId(dz7);
+        t7.setAssignedRobotId("R2");
+        t7.addDependency(t4);
+        t7.addDependency(t6);
+
+        Task t8 = new Task("T8", "Express Delivery F");
+        t8.setTargetNodeId(dz8);
+        t8.setAssignedRobotId("R2");
+
+        Task t9 = new Task("T9", "Express Delivery G");
+        t9.setTargetNodeId(dz9);
+        t9.setAssignedRobotId("R3");
+
+        Task t10 = new Task("T10", "Final Sorting H");
+        t10.setTargetNodeId(dz10);
+        t10.setAssignedRobotId("R3");
+        t10.addDependency(t9);
+
+        Task t11 = new Task("T11", "Buffer Putaway I");
+        t11.setTargetNodeId(dz11);
+        t11.setAssignedRobotId("R3");
+        t11.addDependency(t10);
+
+        Task t12 = new Task("T12", "Staging Load J");
+        t12.setTargetNodeId(dz12);
+        t12.setAssignedRobotId("R3");
+
+        customTaskList.add(t1);
+        customTaskList.add(t2);
+        customTaskList.add(t3);
+        customTaskList.add(t4);
+        customTaskList.add(t5);
+        customTaskList.add(t6);
+        customTaskList.add(t7);
+        customTaskList.add(t8);
+        customTaskList.add(t9);
+        customTaskList.add(t10);
+        customTaskList.add(t11);
+        customTaskList.add(t12);
+
+        refreshCreatedTasksListView();
+    }
+
+    private String findCellIdByLabel(java.util.Map<String, String> cellIdToLabel, String label) {
+        for (java.util.Map.Entry<String, String> entry : cellIdToLabel.entrySet()) {
+            if (entry.getValue().equals(label)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public String getStartNodeText()        { return startNodeField.getText().trim(); }
     public void setStartNodeText(String t)  { startNodeField.setText(t); }
     public String getEndNodeText()          { return endNodeField.getText().trim(); }
