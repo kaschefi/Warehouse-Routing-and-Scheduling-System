@@ -16,11 +16,17 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.geometry.Bounds;
+import javafx.scene.image.Image;
+import javafx.scene.paint.PhongMaterial;
+import org.fxyz3d.importers.Importer3D;
+import org.fxyz3d.importers.Model3D;
 import java.util.List;
 
 /**
  * Represents the 20x20 warehouse grid.
- * Displays the physical space where routing (Dijkstra) and MST will be visualized.
+ * Displays the physical space where routing (Dijkstra) and MST will be
+ * visualized.
  */
 public class WarehouseGridView extends GridPane {
 
@@ -34,7 +40,7 @@ public class WarehouseGridView extends GridPane {
 
     private static final int ROWS = 15;
     private static final int COLS = 15;
-    private static final double CELL_SIZE = 40.0;
+    private static final double CELL_SIZE = 50.0;
 
     private final StatusBarView statusBar;
     private final RoutingService routingService;
@@ -51,15 +57,17 @@ public class WarehouseGridView extends GridPane {
     private javafx.animation.Timeline dijkstraTimeline;
     private javafx.animation.Timeline mstTimeline;
     private final java.util.Set<String> activePathCells = new java.util.HashSet<>();
+    private final java.util.Map<String, List<Edge>> activeRobotPaths = new java.util.HashMap<>();
+    private final java.util.Map<String, String> robotReservations = new java.util.HashMap<>();
 
     public java.util.Map<String, String> getStationLabels() {
         return stationLabels;
     }
 
     public WarehouseGridView(StatusBarView statusBar,
-                             RoutingService routingService,
-                             RightSidebarView rightSidebar,
-                             RobotManagementService robotManagementService) {
+            RoutingService routingService,
+            RightSidebarView rightSidebar,
+            RobotManagementService robotManagementService) {
         this.statusBar = statusBar;
         this.routingService = routingService;
         this.rightSidebar = rightSidebar;
@@ -68,6 +76,10 @@ public class WarehouseGridView extends GridPane {
         this.setHgap(1);
         this.setVgap(1);
         this.getStyleClass().add("warehouse-grid-pane");
+
+        // Add 3D AmbientLight to ensure the robot model is bright and visible
+        javafx.scene.AmbientLight ambientLight = new javafx.scene.AmbientLight(Color.rgb(240, 240, 240));
+        this.getChildren().add(ambientLight);
 
         // Initialize grid state matrix
         for (int r = 0; r < ROWS; r++) {
@@ -106,7 +118,8 @@ public class WarehouseGridView extends GridPane {
     }
 
     private void updateRobotTelemetryHUD(Robot robot, StackPane robotVisual) {
-        if (robotVisual == null) return;
+        if (robotVisual == null)
+            return;
         Text hudText = (Text) robotVisual.lookup("#robot-hud-" + robot.getId());
         if (hudText != null) {
             String taskId = robot.getActiveTaskId();
@@ -121,80 +134,319 @@ public class WarehouseGridView extends GridPane {
     private StackPane createRobotVisual(Robot robot) {
         StackPane robotVisual = new StackPane();
         robotVisual.setId("robot-visual-" + robot.getId());
-        
-        // 3D Composite AGV Model
-        javafx.scene.shape.Box chassis = new javafx.scene.shape.Box(22, 5, 18);
-        javafx.scene.paint.PhongMaterial chassisMaterial = new javafx.scene.paint.PhongMaterial();
-        chassisMaterial.setDiffuseColor(Color.web("#FF5722")); // Industrial Orange
-        chassisMaterial.setSpecularColor(Color.WHITE);
-        chassis.setMaterial(chassisMaterial);
-        
-        // Rolling Wheel Drive System underneath the chassis
-        javafx.scene.shape.Cylinder wheel = new javafx.scene.shape.Cylinder(4, 22);
-        javafx.scene.paint.PhongMaterial wheelMat = new javafx.scene.paint.PhongMaterial();
-        wheelMat.setDiffuseColor(Color.web("#333333")); // Charcoal gray
-        wheel.setMaterial(wheelMat);
-        
-        // Rotate cylinder 90 degrees on the Z-axis to roll horizontally
-        javafx.scene.transform.Rotate wheelRotate = new javafx.scene.transform.Rotate(90, javafx.scene.transform.Rotate.Z_AXIS);
-        wheel.getTransforms().add(wheelRotate);
-        wheel.setTranslateY(5.0); // Positioned underneath chassis deck (bottom of chassis is Y=2.5)
-        
-        // "Face Plate" Monitor Bracket & Face Screen Assembly (Console)
-        javafx.scene.shape.Box monitorBracket = new javafx.scene.shape.Box(16, 10, 3);
-        javafx.scene.paint.PhongMaterial bracketMat = new javafx.scene.paint.PhongMaterial();
-        bracketMat.setDiffuseColor(Color.web("#222222")); // Matte black casing
-        monitorBracket.setMaterial(bracketMat);
-        
-        javafx.scene.shape.Box faceScreen = new javafx.scene.shape.Box(14, 8, 1);
-        javafx.scene.paint.PhongMaterial screenMat = new javafx.scene.paint.PhongMaterial();
-        screenMat.setDiffuseColor(Color.web("#00E5FF")); // Glowing Matrix Cyan face screen
-        screenMat.setSpecularColor(Color.WHITE);
-        faceScreen.setMaterial(screenMat);
-        faceScreen.setTranslateZ(1.6); // Position on the front face of the bracket
-        
-        // Top Scanning Beacon (translucent warning red)
-        javafx.scene.shape.Sphere beacon = new javafx.scene.shape.Sphere(3);
-        javafx.scene.paint.PhongMaterial beaconMat = new javafx.scene.paint.PhongMaterial();
-        beaconMat.setDiffuseColor(new Color(1.0, 0.2, 0.2, 0.7)); // Glowing translucent red
-        beacon.setMaterial(beaconMat);
-        beacon.setTranslateY(-6.0); // Sits on top of the monitor bracket (height 10, top is Y=-5)
-        
-        // Console sub-group for easier unified rotation and translation
-        javafx.scene.Group consoleGroup = new javafx.scene.Group();
-        consoleGroup.getChildren().addAll(monitorBracket, faceScreen, beacon);
-        consoleGroup.setTranslateZ(4.0); // Front third of chassis
-        consoleGroup.setTranslateY(-7.5); // Sits on top of chassis (top is Y=-2.5)
-        
-        // Angle the console slightly backward
-        javafx.scene.transform.Rotate consoleRotate = new javafx.scene.transform.Rotate(-15, javafx.scene.transform.Rotate.X_AXIS);
-        consoleGroup.getTransforms().add(consoleRotate);
-        
-        // Group the 3D elements
+
+        // Group to contain the 3D element hierarchy
         javafx.scene.Group agvGroup = new javafx.scene.Group();
-        agvGroup.getChildren().addAll(chassis, wheel, consoleGroup);
-        
+
+        try {
+            // Load the external 3D OBJ drone model
+            java.net.URL modelUrl = getClass().getResource("/smart_drone.obj");
+            Model3D model = Importer3D.load(modelUrl);
+            javafx.scene.Group modelGroup = model.getRoot();
+
+            // Load and apply texture
+            PhongMaterial droneMat = new PhongMaterial();
+            try {
+                Image texture = new Image(getClass().getResourceAsStream("/Uv Final.jpg"));
+                droneMat.setDiffuseMap(texture);
+            } catch (Exception e) {
+                droneMat.setDiffuseColor(Color.web("#00E5FF"));
+                droneMat.setSpecularColor(Color.WHITE);
+            }
+
+            // Create a separate material for the glowing propulsion rings (using yellow
+            // color)
+            PhongMaterial ringMat = new PhongMaterial();
+            ringMat.setDiffuseColor(Color.rgb(255, 230, 0, 0.5)); // Start at 0.5 opacity yellow
+            ringMat.setSpecularColor(Color.WHITE);
+
+            // Recursively apply texture material and propulsion material to MeshViews
+            applyMaterialsToModel(modelGroup, droneMat, ringMat);
+
+            // Wrap the modelGroup in a centering scaleGroup
+            javafx.scene.Group scaleGroup = new javafx.scene.Group(modelGroup);
+            Bounds bounds = modelGroup.getLayoutBounds();
+            double maxDim = Math.max(bounds.getWidth(), Math.max(bounds.getHeight(), bounds.getDepth()));
+            double scale = 40.0 / (maxDim > 0.0 ? maxDim : 1.0);
+
+            // Center the model's pivot point at (0, 0, 0)
+            modelGroup.setTranslateX(-(bounds.getMinX() + bounds.getMaxX()) / 2.0);
+            modelGroup.setTranslateY(-(bounds.getMinY() + bounds.getMaxY()) / 2.0);
+            modelGroup.setTranslateZ(-(bounds.getMinZ() + bounds.getMaxZ()) / 2.0);
+
+            // Apply scale
+            scaleGroup.setScaleX(scale);
+            scaleGroup.setScaleY(scale);
+            scaleGroup.setScaleZ(scale);
+
+            // Rotate scaleGroup 180 degrees around the X-axis to stand the model upright
+            scaleGroup.getTransforms()
+                    .add(new javafx.scene.transform.Rotate(180, javafx.scene.transform.Rotate.X_AXIS));
+
+            agvGroup.getChildren().add(scaleGroup);
+
+            // 1. Hover Engine Pulse on ringMat (animating diffuse and specular properties
+            // to simulate glow)
+            javafx.animation.Timeline pulseTimeline = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                            new javafx.animation.KeyValue(ringMat.diffuseColorProperty(), Color.rgb(255, 230, 0, 0.5)),
+                            new javafx.animation.KeyValue(ringMat.specularColorProperty(),
+                                    Color.rgb(255, 255, 255, 0.5))),
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(600),
+                            new javafx.animation.KeyValue(ringMat.diffuseColorProperty(), Color.rgb(255, 230, 0, 1.0)),
+                            new javafx.animation.KeyValue(ringMat.specularColorProperty(),
+                                    Color.rgb(255, 255, 255, 1.0))));
+            pulseTimeline.setAutoReverse(true);
+            pulseTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+            pulseTimeline.play();
+            robotVisual.getProperties().put("pulseTimeline", pulseTimeline);
+
+            // 2. Floating Bobbing Wave on agvGroup along Y axis (drift up and down by 3.0
+            // pixels, i.e., -1.5 to 1.5)
+            javafx.animation.TranslateTransition bobbing = new javafx.animation.TranslateTransition(
+                    javafx.util.Duration.millis(1200), agvGroup);
+            bobbing.setFromY(-1.5);
+            bobbing.setToY(1.5);
+            bobbing.setCycleCount(javafx.animation.Animation.INDEFINITE);
+            bobbing.setAutoReverse(true);
+            bobbing.setInterpolator(javafx.animation.Interpolator.EASE_BOTH);
+            bobbing.play();
+            robotVisual.getProperties().put("bobbingTimeline", bobbing);
+
+            // 3. Floating Arms (Inertial Sway & Symmetrical Travel Tilt)
+            javafx.scene.Node leftArm = findNodeById(modelGroup, "pCube18");
+            javafx.scene.Node rightArm = findNodeById(modelGroup, "pCube15");
+
+            if (leftArm == null || rightArm == null) {
+                // Fallback: search dynamically by layout bounds along the Z-axis (left/right
+                // symmetrical axis)
+                for (javafx.scene.Node n : getAllMeshViews(modelGroup)) {
+                    Bounds b = n.getLayoutBounds();
+                    double cz = (b.getMinZ() + b.getMaxZ()) / 2.0;
+                    if (n.getId() != null && n.getId().startsWith("pCube")) {
+                        if (cz < -1.5) {
+                            leftArm = n;
+                        } else if (cz > 1.5) {
+                            rightArm = n;
+                        }
+                    }
+                }
+            }
+
+            final javafx.scene.transform.Rotate leftArmSway = new javafx.scene.transform.Rotate(0,
+                    javafx.scene.transform.Rotate.X_AXIS);
+            final javafx.scene.transform.Rotate leftArmTilt = new javafx.scene.transform.Rotate(0,
+                    javafx.scene.transform.Rotate.Y_AXIS);
+
+            final javafx.scene.transform.Rotate rightArmSway = new javafx.scene.transform.Rotate(0,
+                    javafx.scene.transform.Rotate.X_AXIS);
+            final javafx.scene.transform.Rotate rightArmTilt = new javafx.scene.transform.Rotate(0,
+                    javafx.scene.transform.Rotate.Y_AXIS);
+
+            if (leftArm != null) {
+                Bounds b = leftArm.getLayoutBounds();
+                double cx = (b.getMinX() + b.getMaxX()) / 2.0;
+                double cy = (b.getMinY() + b.getMaxY()) / 2.0;
+                double cz = (b.getMinZ() + b.getMaxZ()) / 2.0;
+                leftArmSway.setPivotX(cx);
+                leftArmSway.setPivotY(cy);
+                leftArmSway.setPivotZ(cz);
+                leftArmTilt.setPivotX(cx);
+                leftArmTilt.setPivotY(cy);
+                leftArmTilt.setPivotZ(cz);
+                leftArm.getTransforms().addAll(leftArmSway, leftArmTilt);
+            }
+
+            if (rightArm != null) {
+                Bounds b = rightArm.getLayoutBounds();
+                double cx = (b.getMinX() + b.getMaxX()) / 2.0;
+                double cy = (b.getMinY() + b.getMaxY()) / 2.0;
+                double cz = (b.getMinZ() + b.getMaxZ()) / 2.0;
+                rightArmSway.setPivotX(cx);
+                rightArmSway.setPivotY(cy);
+                rightArmSway.setPivotZ(cz);
+                rightArmTilt.setPivotX(cx);
+                rightArmTilt.setPivotY(cy);
+                rightArmTilt.setPivotZ(cz);
+                rightArm.getTransforms().addAll(rightArmSway, rightArmTilt);
+            }
+
+            // Idle breathing rotation sway
+            javafx.animation.Timeline idleSway = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                            new javafx.animation.KeyValue(leftArmSway.angleProperty(), -2.0),
+                            new javafx.animation.KeyValue(rightArmSway.angleProperty(), -2.0)),
+                    new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1.0),
+                            new javafx.animation.KeyValue(leftArmSway.angleProperty(), 2.0),
+                            new javafx.animation.KeyValue(rightArmSway.angleProperty(), 2.0)));
+            idleSway.setAutoReverse(true);
+            idleSway.setCycleCount(javafx.animation.Animation.INDEFINITE);
+            idleSway.play();
+
+            // Y-axis travel rotation (facing direction of travel)
+            final javafx.scene.transform.Rotate travelRotate = new javafx.scene.transform.Rotate(-30,
+                    javafx.scene.transform.Rotate.Y_AXIS);
+            scaleGroup.getTransforms().add(travelRotate);
+
+            robotVisual.getProperties().put("idleSway", idleSway);
+            robotVisual.getProperties().put("leftArmSway", leftArmSway);
+            robotVisual.getProperties().put("leftArmTilt", leftArmTilt);
+            robotVisual.getProperties().put("rightArmSway", rightArmSway);
+            robotVisual.getProperties().put("rightArmTilt", rightArmTilt);
+            robotVisual.getProperties().put("travelRotate", travelRotate);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Fallback placeholder Box in case the loading fails
+            javafx.scene.shape.Box fallback = new javafx.scene.shape.Box(40, 9, 32);
+            PhongMaterial fallbackMat = new PhongMaterial(Color.web("#FF5722"));
+            fallback.setMaterial(fallbackMat);
+            agvGroup.getChildren().add(fallback);
+        }
+
         // Isometric angle transformation
         javafx.scene.transform.Rotate rx = new javafx.scene.transform.Rotate(25, javafx.scene.transform.Rotate.X_AXIS);
         javafx.scene.transform.Rotate ry = new javafx.scene.transform.Rotate(40, javafx.scene.transform.Rotate.Y_AXIS);
         agvGroup.getTransforms().addAll(rx, ry);
-        
+
         // Floating Telemetry HUD
         Text hudText = new Text();
         hudText.setId("robot-hud-" + robot.getId());
         hudText.setFill(Color.web("#00FF66")); // Glowing matrix green
         hudText.setFont(Font.font("Courier New", FontWeight.BOLD, 9.0));
-        hudText.setTranslateY(-24.0); // Shifted higher to clear the new tall mast tower perfectly
-        
+        hudText.setTranslateY(-38.0); // Float cleanly above the drone model
+
         javafx.scene.effect.DropShadow hudGlow = new javafx.scene.effect.DropShadow();
         hudGlow.setColor(Color.web("#00FF66"));
         hudGlow.setRadius(2.0);
         hudGlow.setSpread(0.2);
         hudText.setEffect(hudGlow);
-        
+
         robotVisual.getChildren().addAll(agvGroup, hudText);
         updateRobotTelemetryHUD(robot, robotVisual);
         return robotVisual;
+    }
+
+    private void applyMaterialsToModel(javafx.scene.Node node, PhongMaterial droneMat, PhongMaterial ringMat) {
+        if (node instanceof javafx.scene.shape.MeshView) {
+            javafx.scene.shape.MeshView mesh = (javafx.scene.shape.MeshView) node;
+            String id = mesh.getId();
+            if (id != null && (id.equalsIgnoreCase("pTorus1") || id.equalsIgnoreCase("pTorus2")
+                    || id.equalsIgnoreCase("pTorus3") || id.toLowerCase().contains("torus"))) {
+                mesh.setMaterial(ringMat);
+            } else {
+                mesh.setMaterial(droneMat);
+            }
+        } else if (node instanceof javafx.scene.Group) {
+            for (javafx.scene.Node child : ((javafx.scene.Group) node).getChildren()) {
+                applyMaterialsToModel(child, droneMat, ringMat);
+            }
+        }
+    }
+
+    private javafx.scene.Node findNodeById(javafx.scene.Node node, String id) {
+        if (id.equals(node.getId())) {
+            return node;
+        }
+        if (node instanceof javafx.scene.Group) {
+            for (javafx.scene.Node child : ((javafx.scene.Group) node).getChildren()) {
+                javafx.scene.Node res = findNodeById(child, id);
+                if (res != null)
+                    return res;
+            }
+        }
+        return null;
+    }
+
+    private java.util.List<javafx.scene.Node> getAllMeshViews(javafx.scene.Node root) {
+        java.util.List<javafx.scene.Node> meshViews = new java.util.ArrayList<>();
+        getAllMeshViewsHelper(root, meshViews);
+        return meshViews;
+    }
+
+    private void getAllMeshViewsHelper(javafx.scene.Node node, java.util.List<javafx.scene.Node> list) {
+        if (node instanceof javafx.scene.shape.MeshView) {
+            list.add(node);
+        } else if (node instanceof javafx.scene.Group) {
+            for (javafx.scene.Node child : ((javafx.scene.Group) node).getChildren()) {
+                getAllMeshViewsHelper(child, list);
+            }
+        }
+    }
+
+    private void stopRobotVisualAnimations(javafx.scene.Node robotVisual) {
+        if (robotVisual == null)
+            return;
+        javafx.animation.Timeline idleSway = (javafx.animation.Timeline) robotVisual.getProperties().get("idleSway");
+        if (idleSway != null)
+            idleSway.stop();
+        javafx.animation.Timeline pulseTimeline = (javafx.animation.Timeline) robotVisual.getProperties()
+                .get("pulseTimeline");
+        if (pulseTimeline != null)
+            pulseTimeline.stop();
+        javafx.animation.Animation bobbingTimeline = (javafx.animation.Animation) robotVisual.getProperties()
+                .get("bobbingTimeline");
+        if (bobbingTimeline != null)
+            bobbingTimeline.stop();
+    }
+
+    private void setRobotMovingState(Robot robot, boolean moving) {
+        StackPane robotVisual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
+        if (robotVisual == null)
+            return;
+
+        javafx.animation.Timeline idleSway = (javafx.animation.Timeline) robotVisual.getProperties().get("idleSway");
+        javafx.scene.transform.Rotate leftArmSway = (javafx.scene.transform.Rotate) robotVisual.getProperties()
+                .get("leftArmSway");
+        javafx.scene.transform.Rotate leftArmTilt = (javafx.scene.transform.Rotate) robotVisual.getProperties()
+                .get("leftArmTilt");
+        javafx.scene.transform.Rotate rightArmSway = (javafx.scene.transform.Rotate) robotVisual.getProperties()
+                .get("rightArmSway");
+        javafx.scene.transform.Rotate rightArmTilt = (javafx.scene.transform.Rotate) robotVisual.getProperties()
+                .get("rightArmTilt");
+        javafx.scene.transform.Rotate travelRotate = (javafx.scene.transform.Rotate) robotVisual.getProperties()
+                .get("travelRotate");
+
+        if (leftArmSway == null || leftArmTilt == null || rightArmSway == null || rightArmTilt == null)
+            return;
+
+        if (moving) {
+            if (idleSway != null) {
+                idleSway.stop();
+            }
+            // Symmetrical backward tilt (left arm rotates by 10.0, right arm by -10.0)
+            javafx.animation.Timeline tiltTimeline = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(300),
+                            new javafx.animation.KeyValue(leftArmTilt.angleProperty(), 10.0,
+                                    javafx.animation.Interpolator.EASE_OUT),
+                            new javafx.animation.KeyValue(rightArmTilt.angleProperty(), -10.0,
+                                    javafx.animation.Interpolator.EASE_OUT)));
+            tiltTimeline.play();
+        } else {
+            // Smoothly ease back to idle sway starting point (0) and resume idle sway
+            javafx.animation.Timeline returnTimeline = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(300),
+                            new javafx.animation.KeyValue(leftArmTilt.angleProperty(), 0.0,
+                                    javafx.animation.Interpolator.EASE_IN),
+                            new javafx.animation.KeyValue(rightArmTilt.angleProperty(), 0.0,
+                                    javafx.animation.Interpolator.EASE_IN)));
+            returnTimeline.setOnFinished(e -> {
+                if (idleSway != null) {
+                    idleSway.play();
+                }
+            });
+            returnTimeline.play();
+
+            // Smoothly rotate the robot Y-axis back to its baseline default angle (-30.0
+            // degrees)
+            if (travelRotate != null) {
+                javafx.animation.Timeline homeRotTimeline = new javafx.animation.Timeline(
+                        new javafx.animation.KeyFrame(javafx.util.Duration.millis(300),
+                                new javafx.animation.KeyValue(travelRotate.angleProperty(), -30.0,
+                                        javafx.animation.Interpolator.EASE_BOTH)));
+                homeRotTimeline.play();
+            }
+        }
     }
 
     private StackPane createCell(int row, int col) {
@@ -255,13 +507,13 @@ public class WarehouseGridView extends GridPane {
 
     private void handleCellClick(int row, int col, Rectangle rect) {
         String cellId = "N_" + col + "_" + row;
-        
+
         if (currentPlacementMode == PlacementMode.ROBOT) {
             if (gridState[row][col] == NodeType.OBSTACLE) {
                 statusBar.setStatus("Warning: Cannot place a robot on an obstacle block!");
                 return;
             }
-            
+
             // Build the graph database to fetch a valid node reference
             routingService.generateGraphFromGrid(gridState);
             Graph graph = routingService.getWarehouseMap();
@@ -275,16 +527,22 @@ public class WarehouseGridView extends GridPane {
             if (targetNode == null) {
                 targetNode = new Node(cellId, col, row, gridState[row][col]);
             }
-            
+
             Robot robot = robotManagementService.registerRobot(targetNode);
-            
+
             // Render the robot visually inside the StackPane cell
             StackPane cell = cellGrid[row][col];
+            for (javafx.scene.Node child : new java.util.ArrayList<>(cell.getChildren())) {
+                if (child.getId() != null && child.getId().startsWith("robot-visual-")) {
+                    stopRobotVisualAnimations(child);
+                }
+            }
             cell.getChildren().removeIf(node -> node.getId() != null && node.getId().startsWith("robot-visual-"));
             cell.getChildren().add(createRobotVisual(robot));
-            
+            cell.toFront();
+
             statusBar.setStatus("Placed " + robot.getName() + " at " + cellId);
-            
+
         } else if (currentPlacementMode != PlacementMode.SELECT) {
             NodeType targetType = NodeType.EMPTY;
             if (currentPlacementMode == PlacementMode.OBSTACLE) {
@@ -294,7 +552,7 @@ public class WarehouseGridView extends GridPane {
             } else if (currentPlacementMode == PlacementMode.DROP_ZONE) {
                 targetType = NodeType.DROP_ZONE;
             }
-            
+
             StackPane cell = cellGrid[row][col];
             // Clear any direct Text children (old labels)
             cell.getChildren().removeIf(node -> node instanceof Text);
@@ -319,16 +577,27 @@ public class WarehouseGridView extends GridPane {
                     Text textLabel = new Text(label);
                     textLabel.setFill(Color.web("#FFB703")); // Glowing amber
                     textLabel.setFont(Font.font("Courier New", FontWeight.BOLD, 12));
-                    
+
                     javafx.scene.effect.DropShadow glow = new javafx.scene.effect.DropShadow();
                     glow.setColor(Color.web("#FFB703"));
                     glow.setRadius(3.0);
                     glow.setSpread(0.2);
                     textLabel.setEffect(glow);
-                    
+
                     rect.setStroke(Color.web("#FFB703"));
                     rect.setStrokeWidth(1.5);
                     cell.getChildren().add(textLabel);
+
+                    // If a robot is already sitting on this cell, recharge it immediately
+                    for (Robot r : robotManagementService.getActiveFleet()) {
+                        if (r.getCurrentNode() != null && r.getCurrentNode().getX() == col
+                                && r.getCurrentNode().getY() == row) {
+                            r.setBatteryLevel(100.0);
+                            r.getCurrentNode().setNodeType(NodeType.CHARGING_STATION);
+                            StackPane visual = (StackPane) this.lookup("#robot-visual-" + r.getId());
+                            updateRobotTelemetryHUD(r, visual);
+                        }
+                    }
                 } else if (targetType == NodeType.DROP_ZONE) {
                     dropZoneCounter++;
                     String label = "DZ" + dropZoneCounter;
@@ -336,23 +605,29 @@ public class WarehouseGridView extends GridPane {
                     Text textLabel = new Text(label);
                     textLabel.setFill(Color.web("#00FF66")); // Glowing green
                     textLabel.setFont(Font.font("Courier New", FontWeight.BOLD, 12));
-                    
+
                     javafx.scene.effect.DropShadow glow = new javafx.scene.effect.DropShadow();
                     glow.setColor(Color.web("#00FF66"));
                     glow.setRadius(3.0);
                     glow.setSpread(0.2);
                     textLabel.setEffect(glow);
-                    
+
                     rect.setStroke(Color.web("#00FF66"));
                     rect.setStrokeWidth(1.5);
                     cell.getChildren().add(textLabel);
                 }
             }
 
-            // If a cell becomes an obstacle, and it was previously selected for routing or has a robot, clear it
+            // If a cell becomes an obstacle, and it was previously selected for routing or
+            // has a robot, clear it
             if (gridState[row][col] == NodeType.OBSTACLE) {
+                for (javafx.scene.Node child : new java.util.ArrayList<>(cell.getChildren())) {
+                    if (child.getId() != null && child.getId().startsWith("robot-visual-")) {
+                        stopRobotVisualAnimations(child);
+                    }
+                }
                 cell.getChildren().removeIf(node -> node.getId() != null && node.getId().startsWith("robot-visual-"));
-                
+
                 if (rightSidebar != null) {
                     if (rightSidebar.getStartNodeText().equals(cellId)) {
                         rightSidebar.setStartNodeText("");
@@ -390,7 +665,8 @@ public class WarehouseGridView extends GridPane {
     }
 
     private Color getColorForNodeType(NodeType type) {
-        if (type == null) return Color.web("#0B132B");
+        if (type == null)
+            return Color.web("#0B132B");
         switch (type) {
             case OBSTACLE:
                 return Color.web("#FF3333"); // Crimson Warning Red
@@ -402,49 +678,84 @@ public class WarehouseGridView extends GridPane {
         }
     }
 
-    public void highlightCalculatedRoute(List<Edge> shortestPath) {
-        // Reset previously drawn highlights, leaving obstacles untouched
-        resetGridHighlights();
+    private Color getRobotPathColor(String robotId) {
+        return Color.web("#00E5FF", 0.4); // Neon Cyan/Blue used for the first robot
+    }
 
+    public void redrawActiveGridLayers() {
+        // Clear highlights on cells
+        activePathCells.clear();
+
+        // Reset non-obstacle cells back to default colors/borders
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                if (gridState[r][c] != NodeType.OBSTACLE) {
+                    StackPane cell = cellGrid[r][c];
+
+                    // Remove any Line nodes (from MST highlighting)
+                    cell.getChildren().removeIf(node -> node instanceof javafx.scene.shape.Line);
+
+                    Rectangle rect = (Rectangle) cell.getChildren().get(0);
+                    rect.setFill(getColorForNodeType(gridState[r][c]));
+
+                    if (gridState[r][c] == NodeType.CHARGING_STATION) {
+                        rect.setStroke(Color.web("#FFB703"));
+                        rect.setStrokeWidth(1.5);
+                    } else if (gridState[r][c] == NodeType.DROP_ZONE) {
+                        rect.setStroke(Color.web("#00FF66"));
+                        rect.setStrokeWidth(1.5);
+                    } else {
+                        rect.setStroke(Color.web("#00FF66", 0.15));
+                        rect.setStrokeWidth(1.0);
+                    }
+                }
+            }
+        }
+
+        // Add all active path cells to the set for hover logic
+        for (List<Edge> path : activeRobotPaths.values()) {
+            if (path == null || path.isEmpty())
+                continue;
+            activePathCells.add(path.get(0).getSource().getId());
+            for (Edge edge : path) {
+                activePathCells.add(edge.getDestination().getId());
+            }
+        }
+
+        // Highlight cells for each path
+        for (java.util.Map.Entry<String, List<Edge>> entry : activeRobotPaths.entrySet()) {
+            String robotId = entry.getKey();
+            List<Edge> path = entry.getValue();
+            if (path == null || path.isEmpty())
+                continue;
+
+            Color pathColor = getRobotPathColor(robotId);
+
+            Node startNode = path.get(0).getSource();
+            highlightCell(startNode.getY(), startNode.getX(), pathColor, pathColor, 1.5);
+
+            for (Edge edge : path) {
+                Node destNode = edge.getDestination();
+                highlightCell(destNode.getY(), destNode.getX(), pathColor, pathColor, 1.5);
+            }
+        }
+    }
+
+    public void highlightCalculatedRoute(List<Edge> shortestPath) {
+        highlightCalculatedRoute("MANUAL", shortestPath);
+    }
+
+    public void highlightCalculatedRoute(String robotId, List<Edge> shortestPath) {
         if (dijkstraTimeline != null) {
             dijkstraTimeline.stop();
         }
 
         if (shortestPath == null || shortestPath.isEmpty()) {
-            return;
+            activeRobotPaths.remove(robotId);
+        } else {
+            activeRobotPaths.put(robotId, shortestPath);
         }
-
-        Color pathColor = Color.web("#00E5FF", 0.4); // 60% transparent Electric Cyan
-        
-        // Extract nodes to visit sequentially
-        java.util.List<Node> nodes = new java.util.ArrayList<>();
-        nodes.add(shortestPath.get(0).getSource());
-        for (Edge edge : shortestPath) {
-            nodes.add(edge.getDestination());
-        }
-
-        activePathCells.clear();
-        for (Node node : nodes) {
-            activePathCells.add(node.getId());
-        }
-
-        dijkstraTimeline = new javafx.animation.Timeline();
-        double stepDelayMs = 30.0;
-
-        for (int i = 0; i < nodes.size(); i++) {
-            Node node = nodes.get(i);
-            String nodeId = node.getId();
-            javafx.animation.KeyFrame keyFrame = new javafx.animation.KeyFrame(
-                javafx.util.Duration.millis(i * stepDelayMs),
-                event -> {
-                    if (activePathCells.contains(nodeId)) {
-                        highlightCell(node.getY(), node.getX(), pathColor, pathColor, 1.5);
-                    }
-                }
-            );
-            dijkstraTimeline.getKeyFrames().add(keyFrame);
-        }
-        dijkstraTimeline.play();
+        redrawActiveGridLayers();
     }
 
     public void highlightMST(List<Edge> mstEdges) {
@@ -476,8 +787,8 @@ public class WarehouseGridView extends GridPane {
             int dy = y2 - y1;
 
             if (y1 >= 0 && y1 < ROWS && x1 >= 0 && x1 < COLS &&
-                y2 >= 0 && y2 < ROWS && x2 >= 0 && x2 < COLS) {
-                
+                    y2 >= 0 && y2 < ROWS && x2 >= 0 && x2 < COLS) {
+
                 StackPane cell1 = cellGrid[y1][x1];
                 StackPane cell2 = cellGrid[y2][x2];
 
@@ -513,20 +824,18 @@ public class WarehouseGridView extends GridPane {
                 double endTime = (i + 1) * edgeDurationMs;
 
                 mstTimeline.getKeyFrames().add(new javafx.animation.KeyFrame(
-                    javafx.util.Duration.millis(startTime),
-                    new javafx.animation.KeyValue(line1.endXProperty(), CELL_SIZE / 2.0),
-                    new javafx.animation.KeyValue(line1.endYProperty(), CELL_SIZE / 2.0),
-                    new javafx.animation.KeyValue(line2.endXProperty(), CELL_SIZE / 2.0),
-                    new javafx.animation.KeyValue(line2.endYProperty(), CELL_SIZE / 2.0)
-                ));
+                        javafx.util.Duration.millis(startTime),
+                        new javafx.animation.KeyValue(line1.endXProperty(), CELL_SIZE / 2.0),
+                        new javafx.animation.KeyValue(line1.endYProperty(), CELL_SIZE / 2.0),
+                        new javafx.animation.KeyValue(line2.endXProperty(), CELL_SIZE / 2.0),
+                        new javafx.animation.KeyValue(line2.endYProperty(), CELL_SIZE / 2.0)));
 
                 mstTimeline.getKeyFrames().add(new javafx.animation.KeyFrame(
-                    javafx.util.Duration.millis(endTime),
-                    new javafx.animation.KeyValue(line1.endXProperty(), CELL_SIZE / 2.0 + dx * (CELL_SIZE / 2.0)),
-                    new javafx.animation.KeyValue(line1.endYProperty(), CELL_SIZE / 2.0 + dy * (CELL_SIZE / 2.0)),
-                    new javafx.animation.KeyValue(line2.endXProperty(), CELL_SIZE / 2.0 - dx * (CELL_SIZE / 2.0)),
-                    new javafx.animation.KeyValue(line2.endYProperty(), CELL_SIZE / 2.0 - dy * (CELL_SIZE / 2.0))
-                ));
+                        javafx.util.Duration.millis(endTime),
+                        new javafx.animation.KeyValue(line1.endXProperty(), CELL_SIZE / 2.0 + dx * (CELL_SIZE / 2.0)),
+                        new javafx.animation.KeyValue(line1.endYProperty(), CELL_SIZE / 2.0 + dy * (CELL_SIZE / 2.0)),
+                        new javafx.animation.KeyValue(line2.endXProperty(), CELL_SIZE / 2.0 - dx * (CELL_SIZE / 2.0)),
+                        new javafx.animation.KeyValue(line2.endYProperty(), CELL_SIZE / 2.0 - dy * (CELL_SIZE / 2.0))));
             }
         }
         mstTimeline.play();
@@ -554,13 +863,13 @@ public class WarehouseGridView extends GridPane {
             for (int c = 0; c < COLS; c++) {
                 if (gridState[r][c] != NodeType.OBSTACLE) {
                     StackPane cell = cellGrid[r][c];
-                    
+
                     // Remove any Line nodes (from MST highlighting)
                     cell.getChildren().removeIf(node -> node instanceof javafx.scene.shape.Line);
-                    
+
                     Rectangle rect = (Rectangle) cell.getChildren().get(0);
                     rect.setFill(getColorForNodeType(gridState[r][c]));
-                    
+
                     // Restore borders and styles for stations
                     if (gridState[r][c] == NodeType.CHARGING_STATION) {
                         rect.setStroke(Color.web("#FFB703"));
@@ -594,6 +903,9 @@ public class WarehouseGridView extends GridPane {
         stationLabels.clear();
         chargingStationCounter = 0;
         dropZoneCounter = 0;
+        activeRobotPaths.clear();
+        activePathCells.clear();
+        robotReservations.clear();
 
         if (rightSidebar != null) {
             rightSidebar.clearCustomTasks();
@@ -603,6 +915,11 @@ public class WarehouseGridView extends GridPane {
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
                 StackPane cell = cellGrid[r][c];
+                for (javafx.scene.Node child : new java.util.ArrayList<>(cell.getChildren())) {
+                    if (child.getId() != null && child.getId().startsWith("robot-visual-")) {
+                        stopRobotVisualAnimations(child);
+                    }
+                }
                 // Keep only the first child (base Rectangle)
                 while (cell.getChildren().size() > 1) {
                     cell.getChildren().remove(1);
@@ -630,18 +947,155 @@ public class WarehouseGridView extends GridPane {
     }
 
     public void startWorkflowSimulation(Robot robot, java.util.Queue<com.warehouse.model.domain.Task> taskQueue) {
+        robotReservations.clear();
         executeNextTask(robot, taskQueue);
+    }
+
+    /**
+     * Fans out task queues to each robot independently.
+     * Each robot runs its own async animation chain concurrently —
+     * they do not block each other.
+     */
+    public void startMultiRobotSimulation(java.util.Map<String, Robot> robotById,
+            java.util.Map<String, java.util.Queue<com.warehouse.model.domain.Task>> robotQueues,
+            RightSidebarView sidebar) {
+        robotReservations.clear();
+        // Count how many robots actually have tasks
+        int[] remaining = { 0 };
+        for (java.util.Queue<com.warehouse.model.domain.Task> q : robotQueues.values()) {
+            if (!q.isEmpty())
+                remaining[0]++;
+        }
+        if (remaining[0] == 0) {
+            sidebar.updateKahnStatus("IDLE");
+            return;
+        }
+        for (java.util.Map.Entry<String, java.util.Queue<com.warehouse.model.domain.Task>> entry : robotQueues
+                .entrySet()) {
+            Robot robot = robotById.get(entry.getKey());
+            java.util.Queue<com.warehouse.model.domain.Task> queue = entry.getValue();
+            if (robot == null || queue.isEmpty())
+                continue;
+            executeNextTaskMulti(robot, queue, sidebar, remaining);
+        }
+    }
+
+    private void executeNextTaskMulti(Robot robot,
+            java.util.Queue<com.warehouse.model.domain.Task> taskQueue,
+            RightSidebarView sidebar,
+            int[] remaining) {
+        if (taskQueue.isEmpty()) {
+            remaining[0]--;
+            statusBar.setStatus(robot.getId() + " finished all assigned tasks.");
+            if (remaining[0] <= 0) {
+                statusBar.setStatus("All robots completed their tasks!");
+                sidebar.updateKahnStatus("IDLE");
+            }
+            return;
+        }
+        com.warehouse.model.domain.Task nextTask = taskQueue.poll();
+        executeTaskForRobot(robot, nextTask, taskQueue, sidebar, remaining);
+    }
+
+    private void executeTaskForRobot(Robot robot,
+            com.warehouse.model.domain.Task nextTask,
+            java.util.Queue<com.warehouse.model.domain.Task> taskQueue,
+            RightSidebarView sidebar,
+            int[] remaining) {
+        String targetId = nextTask.getTargetNodeId();
+
+        List<String> occupied = new java.util.ArrayList<>();
+        for (Robot r : robotManagementService.getActiveFleet()) {
+            if (!r.getId().equals(robot.getId()) && r.getCurrentNode() != null) {
+                occupied.add(r.getCurrentNode().getId());
+            }
+        }
+        routingService.generateGraphFromGrid(gridState, occupied);
+        Graph graph = routingService.getWarehouseMap();
+
+        Node destNode = null;
+        for (Node n : graph.getNodes()) {
+            if (n.getId().equals(targetId)) {
+                destNode = n;
+                break;
+            }
+        }
+
+        if (destNode == null) {
+            statusBar.setStatus(robot.getId() + ": skipping " + nextTask.getId() + " — target blocked.");
+            executeNextTaskMulti(robot, taskQueue, sidebar, remaining);
+            return;
+        }
+
+        Node startNode = robot.getCurrentNode();
+        if (startNode == null) {
+            statusBar.setStatus("Error: " + robot.getId() + " has no current location.");
+            executeNextTaskMulti(robot, taskQueue, sidebar, remaining);
+            return;
+        }
+
+        if (startNode.equals(destNode)) {
+            if (destNode.getNodeType() == NodeType.CHARGING_STATION) {
+                robot.setBatteryLevel(100.0);
+                StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
+                updateRobotTelemetryHUD(robot, visual);
+            }
+            nextTask.setActive(false);
+            nextTask.setProgress(1.0);
+            rightSidebar.refreshCreatedTasksListView();
+            javafx.animation.PauseTransition p = new javafx.animation.PauseTransition(
+                    javafx.util.Duration.seconds(0.8));
+            p.setOnFinished(ev -> executeNextTaskMulti(robot, taskQueue, sidebar, remaining));
+            p.play();
+            return;
+        }
+
+        List<Edge> path = routingService.calculateRoute(startNode, destNode);
+        if (path == null || path.isEmpty()) {
+            statusBar.setStatus(robot.getId() + ": no path for " + nextTask.getId());
+            executeNextTaskMulti(robot, taskQueue, sidebar, remaining);
+            return;
+        }
+
+        statusBar.setStatus(robot.getId() + " \u2192 " + nextTask.getName() + " (" + path.size() + " steps)");
+        nextTask.setActive(true);
+        nextTask.setProgress(0.0);
+        robot.setActiveTaskId(nextTask.getId());
+        rightSidebar.refreshCreatedTasksListView();
+        highlightCalculatedRoute(robot.getId(), path);
+
+        final Node finalDest = destNode;
+        final com.warehouse.model.domain.Task finalTask = nextTask;
+
+        executeNextPathStep(robot, path, 0, finalTask, taskQueue, false, () -> {
+            setRobotMovingState(robot, false);
+            robot.setCurrentNode(finalDest);
+            robot.setActiveTaskId("None");
+            activeRobotPaths.remove(robot.getId());
+            redrawActiveGridLayers();
+            StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
+            updateRobotTelemetryHUD(robot, visual);
+            statusBar.setStatus(robot.getId() + " completed: " + finalTask.getName());
+            finalTask.setActive(false);
+            finalTask.setProgress(1.0);
+            rightSidebar.refreshCreatedTasksListView();
+            javafx.animation.PauseTransition p = new javafx.animation.PauseTransition(
+                    javafx.util.Duration.seconds(0.8));
+            p.setOnFinished(ev -> executeNextTaskMulti(robot, taskQueue, sidebar, remaining));
+            p.play();
+        }, () -> executeNextTaskMulti(robot, taskQueue, sidebar, remaining));
     }
 
     private void executeNextTask(Robot robot, java.util.Queue<com.warehouse.model.domain.Task> taskQueue) {
         if (taskQueue.isEmpty()) {
             statusBar.setStatus("All scheduled tasks completed successfully!");
+            rightSidebar.updateKahnStatus("IDLE");
             return;
         }
 
         com.warehouse.model.domain.Task nextTask = taskQueue.poll();
         String targetId = nextTask.getTargetNodeId();
-        
+
         // Rebuild full active graph using occupied nodes of other robots
         List<String> occupied = new java.util.ArrayList<>();
         for (Robot r : robotManagementService.getActiveFleet()) {
@@ -651,7 +1105,7 @@ public class WarehouseGridView extends GridPane {
         }
         routingService.generateGraphFromGrid(gridState, occupied);
         Graph graph = routingService.getWarehouseMap();
-        
+
         Node destNode = null;
         for (Node n : graph.getNodes()) {
             if (n.getId().equals(targetId)) {
@@ -659,7 +1113,7 @@ public class WarehouseGridView extends GridPane {
                 break;
             }
         }
-        
+
         if (destNode == null) {
             statusBar.setStatus("Skipping Task " + nextTask.getId() + ": Target location is blocked or invalid.");
             executeNextTask(robot, taskQueue);
@@ -673,12 +1127,21 @@ public class WarehouseGridView extends GridPane {
         }
 
         if (startNode.equals(destNode)) {
-            statusBar.setStatus("Robot " + robot.getId() + " is already at " + destNode.getId() + " for " + nextTask.getName());
+            statusBar.setStatus(
+                    "Robot " + robot.getId() + " is already at " + destNode.getId() + " for " + nextTask.getName());
+            if (destNode.getNodeType() == NodeType.CHARGING_STATION
+                    || gridState[destNode.getY()][destNode.getX()] == NodeType.CHARGING_STATION) {
+                robot.setBatteryLevel(100.0);
+                StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
+                updateRobotTelemetryHUD(robot, visual);
+                statusBar.setStatus("Robot " + robot.getId() + " recharged to 100% at " + destNode.getId());
+            }
             nextTask.setActive(false);
             nextTask.setProgress(1.0);
             rightSidebar.refreshCreatedTasksListView();
 
-            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1.0));
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
+                    javafx.util.Duration.seconds(1.0));
             pause.setOnFinished(e -> executeNextTask(robot, taskQueue));
             pause.play();
             return;
@@ -692,54 +1155,63 @@ public class WarehouseGridView extends GridPane {
         }
 
         statusBar.setStatus("Executing Task: " + nextTask.getName() + " -> Routing to " + destNode.getId());
-        
+
         // Set task active and draw path discovery
         nextTask.setActive(true);
         nextTask.setProgress(0.0);
         robot.setActiveTaskId(nextTask.getId());
         rightSidebar.refreshCreatedTasksListView();
 
-        highlightCalculatedRoute(path);
+        highlightCalculatedRoute(robot.getId(), path);
 
         final Node finalDest = destNode;
         final com.warehouse.model.domain.Task finalTask = nextTask;
 
         // Animate movement step-by-step
         executeNextPathStep(robot, path, 0, finalTask, taskQueue, false, () -> {
+            setRobotMovingState(robot, false);
             robot.setCurrentNode(finalDest); // update position upon arrival
             robot.setActiveTaskId("None");
-            
+            activeRobotPaths.remove(robot.getId());
+            redrawActiveGridLayers();
+
             StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
             updateRobotTelemetryHUD(robot, visual);
 
             statusBar.setStatus("Task Completed: " + finalTask.getName() + " at " + finalDest.getId());
-            
+
             finalTask.setActive(false);
             finalTask.setProgress(1.0);
             rightSidebar.refreshCreatedTasksListView();
 
-            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1.0));
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
+                    javafx.util.Duration.seconds(1.0));
             pause.setOnFinished(e -> executeNextTask(robot, taskQueue));
             pause.play();
-        });
+        }, () -> executeNextTask(robot, taskQueue));
     }
 
     private void executeNextPathStep(Robot robot,
-                                     List<Edge> path,
-                                     int pathIndex,
-                                     com.warehouse.model.domain.Task activeTask,
-                                     java.util.Queue<com.warehouse.model.domain.Task> taskQueue,
-                                     boolean isEmergencyCharging,
-                                     Runnable onArrival) {
+            List<Edge> path,
+            int pathIndex,
+            com.warehouse.model.domain.Task activeTask,
+            java.util.Queue<com.warehouse.model.domain.Task> taskQueue,
+            boolean isEmergencyCharging,
+            Runnable onArrival,
+            Runnable onResumeQueue) {
         if (pathIndex >= path.size()) {
+            activeRobotPaths.remove(robot.getId());
+            robotReservations.remove(robot.getId());
+            redrawActiveGridLayers();
             onArrival.run();
             return;
         }
 
         // Before stepping onto a new tile, check if batteryLevel < 20.0 (Smart Check)
         if (!isEmergencyCharging && robot.getBatteryLevel() < 20.0) {
-            statusBar.setStatus("Warning: Robot " + robot.getId() + " battery low (" + String.format("%.1f", robot.getBatteryLevel()) + "%). Initiating Emergency Charging Override!");
-            
+            statusBar.setStatus("Warning: Robot " + robot.getId() + " battery low ("
+                    + String.format("%.1f", robot.getBatteryLevel()) + "%). Initiating Emergency Charging Override!");
+
             // Interrupt the active task and queue
             if (activeTask != null) {
                 activeTask.setActive(false);
@@ -747,13 +1219,14 @@ public class WarehouseGridView extends GridPane {
                     ((java.util.LinkedList<com.warehouse.model.domain.Task>) taskQueue).addFirst(activeTask);
                 }
             }
-            
+
             // Set active task ID to Charging
             robot.setActiveTaskId("CHARGING");
+            robotReservations.remove(robot.getId());
             StackPane robotVisual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
             updateRobotTelemetryHUD(robot, robotVisual);
             rightSidebar.refreshCreatedTasksListView();
-            
+
             // Find nearest charging station
             routingService.generateGraphFromGrid(gridState);
             Graph currentGraph = routingService.getWarehouseMap();
@@ -763,7 +1236,7 @@ public class WarehouseGridView extends GridPane {
                     stations.add(n);
                 }
             }
-            
+
             if (stations.isEmpty()) {
                 statusBar.setStatus("Error: No charging station placed on grid! Continuing active task...");
                 // Re-enable task if possible and continue
@@ -784,7 +1257,7 @@ public class WarehouseGridView extends GridPane {
                         }
                     }
                 }
-                
+
                 if (bestRoute == null) {
                     statusBar.setStatus("Error: Charging stations are unreachable! Continuing active task...");
                     if (activeTask != null) {
@@ -794,28 +1267,41 @@ public class WarehouseGridView extends GridPane {
                 } else {
                     final Node finalStation = targetStation;
                     final List<Edge> finalEmergencyRoute = bestRoute;
-                    
+
                     // Route to charging station
+                    // Add emergency route path to map
+                    activeRobotPaths.put(robot.getId(), finalEmergencyRoute);
+                    redrawActiveGridLayers();
+
                     executeNextPathStep(robot, finalEmergencyRoute, 0, null, taskQueue, true, () -> {
+                        setRobotMovingState(robot, false);
+                        // Immediately set battery level to 100.0% when the robot lands on the charging
+                        // station
+                        robot.setBatteryLevel(100.0);
+                        robot.setActiveTaskId("None");
+                        activeRobotPaths.remove(robot.getId());
+                        robotReservations.remove(robot.getId());
+                        redrawActiveGridLayers();
+                        StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
+                        updateRobotTelemetryHUD(robot, visual);
+
                         statusBar.setStatus("Robot " + robot.getId() + " arrived at Charging Station. Recharging...");
-                        
+
                         // Recharge transition (1.5 seconds)
                         javafx.animation.PauseTransition rechargeTimer = new javafx.animation.PauseTransition(
-                            javafx.util.Duration.seconds(1.5)
-                        );
+                                javafx.util.Duration.seconds(1.5));
                         rechargeTimer.setOnFinished(evt -> {
-                            robot.setBatteryLevel(100.0);
-                            robot.setActiveTaskId("None");
-                            statusBar.setStatus("Robot " + robot.getId() + " fully recharged (100.0%). Resuming task queue.");
-                            
-                            StackPane visual = (StackPane) this.lookup("#robot-visual-" + robot.getId());
+                            statusBar.setStatus(
+                                    "Robot " + robot.getId() + " fully recharged (100.0%). Resuming task queue.");
                             updateRobotTelemetryHUD(robot, visual);
-                            
+
                             // Resume queue
-                            executeNextTask(robot, taskQueue);
+                            if (onResumeQueue != null) {
+                                onResumeQueue.run();
+                            }
                         });
                         rechargeTimer.play();
-                    });
+                    }, onResumeQueue);
                     return;
                 }
             }
@@ -826,6 +1312,84 @@ public class WarehouseGridView extends GridPane {
         Node srcNode = edge.getSource();
         Node destNode = edge.getDestination();
 
+        // Collision / occupancy / reservation check:
+        boolean nextTileOccupied = false;
+        for (Robot r : robotManagementService.getActiveFleet()) {
+            if (!r.getId().equals(robot.getId())) {
+                // Check if the other robot is currently at destNode
+                if (r.getCurrentNode() != null && r.getCurrentNode().getX() == destNode.getX()
+                        && r.getCurrentNode().getY() == destNode.getY()) {
+                    nextTileOccupied = true;
+                    break;
+                }
+                // Check if the other robot has reserved destNode
+                String reservedNodeId = robotReservations.get(r.getId());
+                if (reservedNodeId != null && reservedNodeId.equals(destNode.getId())) {
+                    nextTileOccupied = true;
+                    break;
+                }
+            }
+        }
+
+        if (nextTileOccupied) {
+            statusBar.setStatus("Recalculating detour for robot " + robot.getId() + " because next tile "
+                    + destNode.getId() + " is occupied.");
+
+            // Gather all occupied and reserved node IDs of other active robots
+            List<String> occupied = new java.util.ArrayList<>();
+            for (Robot r : robotManagementService.getActiveFleet()) {
+                if (!r.getId().equals(robot.getId())) {
+                    if (r.getCurrentNode() != null) {
+                        occupied.add(r.getCurrentNode().getId());
+                    }
+                    String reservedNodeId = robotReservations.get(r.getId());
+                    if (reservedNodeId != null) {
+                        occupied.add(reservedNodeId);
+                    }
+                }
+            }
+            // Generate graph layout with coworker cells as penalty weight (100.0)
+            routingService.generateGraphFromGrid(gridState, occupied);
+
+            // Calculate detour from current node (robot's current position) to final
+            // destination
+            Node finalDest = path.get(path.size() - 1).getDestination();
+            List<Edge> detourPath = routingService.calculateRoute(robot.getCurrentNode(), finalDest);
+
+            if (detourPath != null && !detourPath.isEmpty()) {
+                // Seamlessly update the remaining path steps
+                activeRobotPaths.put(robot.getId(), detourPath);
+                redrawActiveGridLayers();
+
+                // Recursively execute from step 0 of the detour path
+                executeNextPathStep(robot, detourPath, 0, activeTask, taskQueue, isEmergencyCharging, onArrival,
+                        onResumeQueue);
+                return;
+            } else {
+                setRobotMovingState(robot, false);
+                statusBar.setStatus(
+                        "Warning: No detour path found for robot " + robot.getId() + ". Waiting for path to clear...");
+                // Wait for a short moment and try again
+                javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
+                        javafx.util.Duration.millis(500));
+                pause.setOnFinished(e -> {
+                    setRobotMovingState(robot, true);
+                    executeNextPathStep(robot, path, pathIndex, activeTask, taskQueue, isEmergencyCharging, onArrival,
+                            onResumeQueue);
+                });
+                pause.play();
+                return;
+            }
+        }
+
+        // If start of a path, set arms to moving (tilt back)
+        if (pathIndex == 0) {
+            setRobotMovingState(robot, true);
+        }
+
+        // Reserve the next tile
+        robotReservations.put(robot.getId(), destNode.getId());
+
         // Deduct battery
         robot.setBatteryLevel(robot.getBatteryLevel() - 1.5);
 
@@ -835,41 +1399,84 @@ public class WarehouseGridView extends GridPane {
             cellGrid[srcNode.getY()][srcNode.getX()].getChildren().add(robotVisual);
         }
 
+        // Bring the source cell containing the robot visual to front so it renders on top during movement
+        cellGrid[srcNode.getY()][srcNode.getX()].toFront();
+
         // Update telemetry HUD
         updateRobotTelemetryHUD(robot, robotVisual);
 
-        // Move visual using TranslateTransition
+        // Update the active path in the map to show remaining path starting from this
+        // step
+        List<Edge> remainingPath = new java.util.ArrayList<>(path.subList(pathIndex, path.size()));
+        activeRobotPaths.put(robot.getId(), remainingPath);
+        redrawActiveGridLayers();
+
+        // Move visual using TranslateTransition and RotateTransition in parallel
         int dx = destNode.getX() - srcNode.getX();
         int dy = destNode.getY() - srcNode.getY();
         double offset = CELL_SIZE + 1.0;
         double tx = dx * offset;
         double ty = dy * offset;
 
+        // Calculate travel rotation target angle
+        double targetAngle = -30.0;
+        if (dx > 0) {
+            targetAngle = 180.0; // Right
+        } else if (dx < 0) {
+            targetAngle = 0.0; // Left
+        } else if (dy > 0) {
+            targetAngle = -45.0; // Down
+        } else if (dy < 0) {
+            targetAngle = 100.0; // Up
+        }
+
+        double currentSpeed = this.rightSidebar.getSimulationSpeed();
+
+        javafx.scene.transform.Rotate travelRotate = (javafx.scene.transform.Rotate) robotVisual.getProperties()
+                .get("travelRotate");
+        javafx.animation.Timeline rotTimeline = null;
+        if (travelRotate != null) {
+            rotTimeline = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(currentSpeed * 0.5),
+                            new javafx.animation.KeyValue(travelRotate.angleProperty(), targetAngle,
+                                    javafx.animation.Interpolator.EASE_BOTH)));
+        }
+
         final StackPane finalVisual = robotVisual;
         javafx.animation.TranslateTransition tt = new javafx.animation.TranslateTransition(
-            javafx.util.Duration.millis(200), finalVisual
-        );
+                javafx.util.Duration.millis(currentSpeed), finalVisual);
         tt.setFromX(0.0);
         tt.setFromY(0.0);
         tt.setToX(tx);
         tt.setToY(ty);
 
-        tt.setOnFinished(evt -> {
-            // Reset translation first to prevent coordinate multiplication errors or visual jumps
+        Runnable onFinishedAction = () -> {
+            // Reset translation first to prevent coordinate multiplication errors or visual
+            // jumps
             finalVisual.setTranslateX(0.0);
             finalVisual.setTranslateY(0.0);
 
             // Reparent visual node
             cellGrid[srcNode.getY()][srcNode.getX()].getChildren().remove(finalVisual);
-            
+
             // Clean up destination cell of any old robot-visual of this robot
             cellGrid[destNode.getY()][destNode.getX()].getChildren().removeIf(
-                n -> n.getId() != null && n.getId().equals("robot-visual-" + robot.getId())
-            );
+                    n -> n.getId() != null && n.getId().equals("robot-visual-" + robot.getId()));
             cellGrid[destNode.getY()][destNode.getX()].getChildren().add(finalVisual);
 
-            // Update model
+            // Bring the destination cell containing the robot visual to front
+            cellGrid[destNode.getY()][destNode.getX()].toFront();
+
+            // Update model & clear reservation
             robot.setCurrentNode(destNode);
+            robotReservations.remove(robot.getId());
+
+            // If the robot moves onto a charging station, recharge battery to 100.0%
+            if (destNode.getNodeType() == NodeType.CHARGING_STATION) {
+                robot.setBatteryLevel(100.0);
+                updateRobotTelemetryHUD(robot, finalVisual);
+                statusBar.setStatus("Robot " + robot.getId() + " recharged to 100% at " + destNode.getId());
+            }
 
             // Update task progress if active
             if (activeTask != null) {
@@ -879,9 +1486,17 @@ public class WarehouseGridView extends GridPane {
             }
 
             // Next step
-            executeNextPathStep(robot, path, pathIndex + 1, activeTask, taskQueue, isEmergencyCharging, onArrival);
-        });
+            executeNextPathStep(robot, path, pathIndex + 1, activeTask, taskQueue, isEmergencyCharging, onArrival,
+                    onResumeQueue);
+        };
 
-        tt.play();
+        if (rotTimeline != null) {
+            javafx.animation.ParallelTransition pt = new javafx.animation.ParallelTransition(rotTimeline, tt);
+            pt.setOnFinished(evt -> onFinishedAction.run());
+            pt.play();
+        } else {
+            tt.setOnFinished(evt -> onFinishedAction.run());
+            tt.play();
+        }
     }
 }

@@ -73,7 +73,7 @@ public class RoutingService {
                         if (neighborNode != null) {
                             double weight = 1.0;
                             if (occupiedNodeIds != null && occupiedNodeIds.contains(neighborNode.getId())) {
-                                weight = 50.0;
+                                weight = 100.0;
                             }
                             Edge stepEdge = new Edge(currentNode, neighborNode, weight);
                             warehouseMap.addEdge(stepEdge);

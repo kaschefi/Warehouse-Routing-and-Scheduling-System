@@ -35,6 +35,9 @@ public class Robot {
 
     public void setCurrentNode(Node currentNode) {
         this.currentNode = currentNode;
+        if (currentNode != null && currentNode.getNodeType() == NodeType.CHARGING_STATION) {
+            this.batteryLevel = 100.0;
+        }
     }
 
     public double getBatteryLevel() {

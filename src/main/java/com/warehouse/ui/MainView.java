@@ -10,11 +10,20 @@ import com.warehouse.service.RobotManagementService;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.SplitPane;
 import javafx.scene.layout.BorderPane;
 
 /**
- * The main layout container (BorderPane) for the application.
- * Manages the top menu bar, sidebars, central grid, and bottom status bar.
+ * The main layout container for the RoboFlow application.
+ *
+ * Architecture:
+ *   BorderPane (root)
+ *     ├── TOP:    MenuBar
+ *     ├── CENTER: horizontal SplitPane
+ *     │              ├── LeftSidebarView  (fixed)
+ *     │              ├── WarehouseGridView (grows)
+ *     │              └── RightSidebarView (fixed, scrollable)
+ *     └── BOTTOM: StatusBarView
  */
 public class MainView extends BorderPane {
 
@@ -29,14 +38,13 @@ public class MainView extends BorderPane {
     private RightSidebarView rightSidebar;
 
     public MainView() {
-        // Instantiate the backend algorithms
+        // Instantiate algorithms
         DijkstraAlgorithm dijkstra = new DijkstraAlgorithm();
         PrimAlgorithm prim = new PrimAlgorithm();
         KahnAlgorithm kahn = new KahnAlgorithm();
 
-        // Instantiate the services with their respective strategies
+        // Instantiate services
         this.routingService = new RoutingService(dijkstra);
-        // Start NetworkDesignService with the initial Graph from RoutingService
         this.networkDesignService = new NetworkDesignService(routingService.getWarehouseMap(), prim);
         this.taskSchedulingService = new TaskSchedulingService(kahn);
         this.robotManagementService = new RobotManagementService();
@@ -61,17 +69,31 @@ public class MainView extends BorderPane {
 
     private void setupComponents() {
         statusBar = new StatusBarView();
-        
-        // Pass shared services and UI references down via constructor injection
-        rightSidebar = new RightSidebarView(routingService, networkDesignService, taskSchedulingService, statusBar, robotManagementService);
+
+        // Build right sidebar
+        rightSidebar = new RightSidebarView(
+                routingService,
+                networkDesignService,
+                taskSchedulingService,
+                statusBar,
+                robotManagementService
+        );
+
+        // Build grid
         gridView = new WarehouseGridView(statusBar, routingService, rightSidebar, robotManagementService);
         rightSidebar.setGridView(gridView);
-        
+
         leftSidebar = new LeftSidebarView(gridView, statusBar, robotManagementService);
 
-        this.setCenter(gridView);
-        this.setLeft(leftSidebar);
-        this.setRight(rightSidebar);
+        // ── Horizontal SplitPane: left | center grid | right ─────────────────
+        SplitPane horizontalSplit = new SplitPane();
+        horizontalSplit.getStyleClass().add("main-split-pane");
+        horizontalSplit.getItems().addAll(leftSidebar, gridView, rightSidebar);
+        horizontalSplit.setDividerPositions(0.13, 0.78);
+        SplitPane.setResizableWithParent(leftSidebar, Boolean.FALSE);
+        SplitPane.setResizableWithParent(rightSidebar, Boolean.FALSE);
+
+        this.setCenter(horizontalSplit);
         this.setBottom(statusBar);
     }
 }

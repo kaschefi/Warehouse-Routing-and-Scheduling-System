@@ -13,6 +13,7 @@ public class Task {
     private final String name;
     private final List<Task> dependencies;
     private String targetNodeId;
+    private String assignedRobotId; // which robot is responsible for this task
     private boolean active;
     private double progress;
 
@@ -38,6 +39,14 @@ public class Task {
 
     public void setTargetNodeId(String targetNodeId) {
         this.targetNodeId = targetNodeId;
+    }
+
+    public String getAssignedRobotId() {
+        return assignedRobotId;
+    }
+
+    public void setAssignedRobotId(String assignedRobotId) {
+        this.assignedRobotId = assignedRobotId;
     }
 
     public boolean isActive() {
