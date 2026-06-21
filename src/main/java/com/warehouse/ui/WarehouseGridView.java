@@ -59,6 +59,8 @@ public class WarehouseGridView extends GridPane {
     private final java.util.Set<String> activePathCells = new java.util.HashSet<>();
     private final java.util.Map<String, List<Edge>> activeRobotPaths = new java.util.HashMap<>();
     private final java.util.Map<String, String> robotReservations = new java.util.HashMap<>();
+    private Image originalRobotTexture = null;
+    private final java.util.Map<String, Image> customizedTextureCache = new java.util.HashMap<>();
 
     public java.util.Map<String, String> getStationLabels() {
         return stationLabels;
@@ -150,7 +152,14 @@ public class WarehouseGridView extends GridPane {
             // Load and apply texture
             PhongMaterial droneMat = new PhongMaterial();
             try {
-                Image texture = new Image(getClass().getResourceAsStream("/Uv Final.jpg"));
+                if (originalRobotTexture == null) {
+                    originalRobotTexture = new Image(getClass().getResourceAsStream("/Uv Final.jpg"));
+                }
+                Image texture = customizedTextureCache.get(robot.getId());
+                if (texture == null) {
+                    texture = customizeRobotTexture(originalRobotTexture, solidColor);
+                    customizedTextureCache.put(robot.getId(), texture);
+                }
                 droneMat.setDiffuseMap(texture);
             } catch (Exception e) {
                 droneMat.setDiffuseColor(solidColor);
@@ -312,14 +321,12 @@ public class WarehouseGridView extends GridPane {
         // Floating Telemetry HUD
         Text hudText = new Text();
         hudText.setId("robot-hud-" + robot.getId());
-        Color baseColor = getRobotPathColor(robot.getId());
-        Color solidColor = Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), 1.0);
-        hudText.setFill(solidColor);
+        hudText.setFill(Color.web("#00FF66")); // Glowing matrix green
         hudText.setFont(Font.font("Courier New", FontWeight.BOLD, 9.0));
         hudText.setTranslateY(-38.0); // Float cleanly above the drone model
 
         javafx.scene.effect.DropShadow hudGlow = new javafx.scene.effect.DropShadow();
-        hudGlow.setColor(solidColor);
+        hudGlow.setColor(Color.web("#00FF66"));
         hudGlow.setRadius(2.0);
         hudGlow.setSpread(0.2);
         hudText.setEffect(hudGlow);
@@ -344,6 +351,36 @@ public class WarehouseGridView extends GridPane {
                 applyMaterialsToModel(child, droneMat, ringMat);
             }
         }
+    }
+
+    private Image customizeRobotTexture(Image originalImage, Color targetColor) {
+        int width = (int) originalImage.getWidth();
+        int height = (int) originalImage.getHeight();
+        if (width <= 0 || height <= 0) {
+            return originalImage;
+        }
+
+        javafx.scene.image.WritableImage resultImage = new javafx.scene.image.WritableImage(width, height);
+        javafx.scene.image.PixelReader reader = originalImage.getPixelReader();
+        javafx.scene.image.PixelWriter writer = resultImage.getPixelWriter();
+
+        double targetHue = targetColor.getHue();
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Color c = reader.getColor(x, y);
+                double h = c.getHue();
+                double s = c.getSaturation();
+                double b = c.getBrightness();
+
+                // Detect green hue range (typically 75° to 165°)
+                if (h >= 75.0 && h <= 165.0 && s > 0.20 && b > 0.15) {
+                    c = Color.hsb(targetHue, s, b, c.getOpacity());
+                }
+                writer.setColor(x, y, c);
+            }
+        }
+        return resultImage;
     }
 
     private javafx.scene.Node findNodeById(javafx.scene.Node node, String id) {
@@ -934,6 +971,7 @@ public class WarehouseGridView extends GridPane {
         activeRobotPaths.clear();
         activePathCells.clear();
         robotReservations.clear();
+        customizedTextureCache.clear();
 
         if (rightSidebar != null) {
             rightSidebar.clearCustomTasks();
