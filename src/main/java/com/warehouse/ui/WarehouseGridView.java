@@ -139,6 +139,9 @@ public class WarehouseGridView extends GridPane {
         javafx.scene.Group agvGroup = new javafx.scene.Group();
 
         try {
+            Color baseColor = getRobotPathColor(robot.getId());
+            Color solidColor = Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), 1.0);
+
             // Load the external 3D OBJ drone model
             java.net.URL modelUrl = getClass().getResource("/smart_drone.obj");
             Model3D model = Importer3D.load(modelUrl);
@@ -150,14 +153,14 @@ public class WarehouseGridView extends GridPane {
                 Image texture = new Image(getClass().getResourceAsStream("/Uv Final.jpg"));
                 droneMat.setDiffuseMap(texture);
             } catch (Exception e) {
-                droneMat.setDiffuseColor(Color.web("#00E5FF"));
+                droneMat.setDiffuseColor(solidColor);
                 droneMat.setSpecularColor(Color.WHITE);
             }
 
-            // Create a separate material for the glowing propulsion rings (using yellow
-            // color)
+            // Create a separate material for the glowing propulsion rings
             PhongMaterial ringMat = new PhongMaterial();
-            ringMat.setDiffuseColor(Color.rgb(255, 230, 0, 0.5)); // Start at 0.5 opacity yellow
+            Color ringColor = Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), 0.5);
+            ringMat.setDiffuseColor(ringColor);
             ringMat.setSpecularColor(Color.WHITE);
 
             // Recursively apply texture material and propulsion material to MeshViews
@@ -185,17 +188,14 @@ public class WarehouseGridView extends GridPane {
 
             agvGroup.getChildren().add(scaleGroup);
 
-            // 1. Hover Engine Pulse on ringMat (animating diffuse and specular properties
-            // to simulate glow)
+            // 1. Hover Engine Pulse on ringMat (animating diffuse and specular properties to simulate glow)
             javafx.animation.Timeline pulseTimeline = new javafx.animation.Timeline(
                     new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
-                            new javafx.animation.KeyValue(ringMat.diffuseColorProperty(), Color.rgb(255, 230, 0, 0.5)),
-                            new javafx.animation.KeyValue(ringMat.specularColorProperty(),
-                                    Color.rgb(255, 255, 255, 0.5))),
+                            new javafx.animation.KeyValue(ringMat.diffuseColorProperty(), Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), 0.4)),
+                            new javafx.animation.KeyValue(ringMat.specularColorProperty(), Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), 0.4))),
                     new javafx.animation.KeyFrame(javafx.util.Duration.millis(600),
-                            new javafx.animation.KeyValue(ringMat.diffuseColorProperty(), Color.rgb(255, 230, 0, 1.0)),
-                            new javafx.animation.KeyValue(ringMat.specularColorProperty(),
-                                    Color.rgb(255, 255, 255, 1.0))));
+                            new javafx.animation.KeyValue(ringMat.diffuseColorProperty(), Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), 1.0)),
+                            new javafx.animation.KeyValue(ringMat.specularColorProperty(), Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), 1.0))));
             pulseTimeline.setAutoReverse(true);
             pulseTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
             pulseTimeline.play();
@@ -312,12 +312,14 @@ public class WarehouseGridView extends GridPane {
         // Floating Telemetry HUD
         Text hudText = new Text();
         hudText.setId("robot-hud-" + robot.getId());
-        hudText.setFill(Color.web("#00FF66")); // Glowing matrix green
+        Color baseColor = getRobotPathColor(robot.getId());
+        Color solidColor = Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), 1.0);
+        hudText.setFill(solidColor);
         hudText.setFont(Font.font("Courier New", FontWeight.BOLD, 9.0));
         hudText.setTranslateY(-38.0); // Float cleanly above the drone model
 
         javafx.scene.effect.DropShadow hudGlow = new javafx.scene.effect.DropShadow();
-        hudGlow.setColor(Color.web("#00FF66"));
+        hudGlow.setColor(solidColor);
         hudGlow.setRadius(2.0);
         hudGlow.setSpread(0.2);
         hudText.setEffect(hudGlow);
@@ -679,7 +681,33 @@ public class WarehouseGridView extends GridPane {
     }
 
     private Color getRobotPathColor(String robotId) {
-        return Color.web("#00E5FF", 0.4); // Neon Cyan/Blue used for the first robot
+        if (robotId == null) {
+            return Color.web("#00E5FF", 0.4);
+        }
+        String[] neonColors = {
+            "#00E5FF", // Neon Cyan/Blue (First robot / Default)
+            "#BD00FF", // Neon Violet/Purple
+            "#FF007F", // Neon Pink/Magenta
+            "#00FF66", // Neon Green
+            "#FF6C00", // Neon Orange/Amber
+            "#FFE600", // Neon Yellow
+            "#7B2CBF"  // Neon Deep Purple
+        };
+        int index = 0;
+        if (robotId.startsWith("R")) {
+            try {
+                int num = Integer.parseInt(robotId.substring(1));
+                index = (num - 1) % neonColors.length;
+                if (index < 0) index = 0;
+            } catch (NumberFormatException e) {
+                index = Math.abs(robotId.hashCode()) % neonColors.length;
+            }
+        } else if (robotId.equalsIgnoreCase("MANUAL")) {
+            index = 0;
+        } else {
+            index = Math.abs(robotId.hashCode()) % neonColors.length;
+        }
+        return Color.web(neonColors[index], 0.4);
     }
 
     public void redrawActiveGridLayers() {

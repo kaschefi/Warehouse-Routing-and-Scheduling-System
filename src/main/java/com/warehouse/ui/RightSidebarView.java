@@ -516,6 +516,16 @@ public class RightSidebarView extends VBox {
                 // Robot badge
                 String rid = task.getAssignedRobotId();
                 lbRobot.setText(rid != null ? rid : "?");
+                if (rid != null) {
+                    String baseHex = getRobotColorHex(rid);
+                    lbRobot.setStyle(
+                        "-fx-text-fill: " + baseHex + "; " +
+                        "-fx-border-color: " + baseHex + "59; " + // 35% opacity
+                        "-fx-background-color: " + baseHex + "1E;"  // 12% opacity
+                    );
+                } else {
+                    lbRobot.setStyle("");
+                }
 
                 // Dep string
                 StringBuilder depStr = new StringBuilder();
@@ -770,6 +780,34 @@ public class RightSidebarView extends VBox {
             }
         }
         return null;
+    }
+
+    private String getRobotColorHex(String robotId) {
+        if (robotId == null) {
+            return "#00E5FF";
+        }
+        String[] neonColors = {
+            "#00E5FF", // Neon Cyan/Blue (First robot / Default)
+            "#BD00FF", // Neon Purple/Violet
+            "#FF007F", // Neon Pink/Magenta
+            "#00FF66", // Neon Green
+            "#FF6C00", // Neon Orange/Amber
+            "#FFE600", // Neon Yellow
+            "#7B2CBF"  // Neon Deep Purple
+        };
+        int index = 0;
+        if (robotId.startsWith("R")) {
+            try {
+                int num = Integer.parseInt(robotId.substring(1));
+                index = (num - 1) % neonColors.length;
+                if (index < 0) index = 0;
+            } catch (NumberFormatException e) {
+                index = Math.abs(robotId.hashCode()) % neonColors.length;
+            }
+        } else {
+            index = Math.abs(robotId.hashCode()) % neonColors.length;
+        }
+        return neonColors[index];
     }
 
     public String getStartNodeText()        { return startNodeField.getText().trim(); }
