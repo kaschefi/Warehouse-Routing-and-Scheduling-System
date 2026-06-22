@@ -54,6 +54,7 @@ public class RightSidebarView extends VBox {
     private ComboBox<String> robotComboBox;      // NEW: robot assignment
     private ComboBox<String> dependencyComboBox;
     private ListView<Task> createdTasksListView;
+    private Button btnStop;
     private VBox taskBuilderCard;
     private javafx.scene.control.Slider speedSlider;
 
@@ -131,7 +132,7 @@ public class RightSidebarView extends VBox {
         grid.add(keyMst, 0, 1);
         grid.add(lblMstFootprint, 1, 1);
 
-        Label keyKahn = new Label("Kahn Status:");
+        Label keyKahn = new Label("Topo Status:");
         keyKahn.getStyleClass().add("hud-key-label");
         lblKahnStatus = new Label("IDLE");
         lblKahnStatus.getStyleClass().addAll("hud-value-label", "hud-status-idle");
@@ -554,8 +555,17 @@ public class RightSidebarView extends VBox {
         btnSchedule.getStyleClass().add("btn-launch");
         btnSchedule.setOnAction(e -> handleScheduleAndLaunch());
 
-        HBox bottomRow = new HBox(8, btnSchedule);
-        HBox.setHgrow(btnSchedule, Priority.ALWAYS);
+        btnStop = new Button("⏸  Stop Simulation");
+        btnStop.setMaxWidth(Double.MAX_VALUE);
+        btnStop.getStyleClass().add("btn-stop");
+        btnStop.setDisable(true);
+        btnStop.setOnAction(e -> handleStopOrResume());
+
+        VBox bottomButtons = new VBox(6, btnSchedule, btnStop);
+        bottomButtons.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(bottomButtons, Priority.ALWAYS);
+
+        HBox bottomRow = new HBox(bottomButtons);
 
         taskBuilderCard.getChildren().addAll(
             title,
@@ -577,6 +587,9 @@ public class RightSidebarView extends VBox {
      */
     private void handleScheduleAndLaunch() {
         try {
+            if (gridView != null) {
+                gridView.stopAllSimulationTransitions();
+            }
             List<Robot> fleet = robotManagementService.getActiveFleet();
             if (fleet.isEmpty()) {
                 statusBar.setStatus("Error: No robots on the grid. Place robots first.");
@@ -629,6 +642,7 @@ public class RightSidebarView extends VBox {
                 fadeWarn.setCycleCount(8); fadeWarn.setAutoReverse(true);
                 fadeWarn.setOnFinished(evt -> taskBuilderCard.getChildren().remove(warn));
                 fadeWarn.play();
+                onSimulationFinished();
                 return;
             }
 
@@ -651,10 +665,18 @@ public class RightSidebarView extends VBox {
             // Fire each robot's queue independently — they run concurrently via async animations
             gridView.startMultiRobotSimulation(robotById, robotQueues, this);
 
+            if (btnStop != null) {
+                btnStop.setText("⏸  Stop Simulation");
+                btnStop.getStyleClass().removeAll("btn-resume");
+                btnStop.getStyleClass().add("btn-stop");
+                btnStop.setDisable(false);
+            }
+
         } catch (Exception ex) {
             updateKahnStatus("IDLE");
             statusBar.setStatus("Scheduling Error: " + ex.getMessage());
             ex.printStackTrace();
+            onSimulationFinished();
         }
     }
 
@@ -669,6 +691,36 @@ public class RightSidebarView extends VBox {
         return lbl;
     }
 
+    public List<Task> getCustomTaskList() {
+        return customTaskList;
+    }
+
+    private void handleStopOrResume() {
+        if (gridView == null) return;
+        if (gridView.isSimulationPaused()) {
+            gridView.resumeSimulation();
+            btnStop.setText("⏸  Stop Simulation");
+            btnStop.getStyleClass().removeAll("btn-resume");
+            btnStop.getStyleClass().add("btn-stop");
+        } else {
+            gridView.pauseSimulation();
+            btnStop.setText("▶  Resume Simulation");
+            btnStop.getStyleClass().removeAll("btn-stop");
+            btnStop.getStyleClass().add("btn-resume");
+        }
+    }
+
+    public void onSimulationFinished() {
+        javafx.application.Platform.runLater(() -> {
+            if (btnStop != null) {
+                btnStop.setText("⏸  Stop Simulation");
+                btnStop.getStyleClass().removeAll("btn-resume");
+                btnStop.getStyleClass().add("btn-stop");
+                btnStop.setDisable(true);
+            }
+        });
+    }
+
     public void clearCustomTasks() {
         customTaskList.clear();
         if (createdTasksListView != null) createdTasksListView.getItems().clear();
@@ -677,6 +729,7 @@ public class RightSidebarView extends VBox {
         if (dependencyComboBox != null) { dependencyComboBox.setValue(null); dependencyComboBox.getItems().clear(); }
         if (taskNameField != null) taskNameField.clear();
         updateKahnStatus("IDLE");
+        onSimulationFinished();
     }
 
     public void refreshCreatedTasksListView() {

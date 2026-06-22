@@ -12,4 +12,5 @@ public interface Graph {
     void removeNode(Node node);
     List<Node> getNodes();
     List<Edge> getNeighbors(Node node);
+    void resetTraversalState();
 }

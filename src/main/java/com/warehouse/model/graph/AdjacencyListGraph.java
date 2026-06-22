@@ -1,6 +1,7 @@
 package com.warehouse.model.graph;
 
 import com.warehouse.model.domain.Node;
+import com.warehouse.model.domain.NodeColor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,5 +58,14 @@ public class AdjacencyListGraph implements Graph {
     @Override
     public List<Edge> getNeighbors(Node node) {
         return adjList.getOrDefault(node, new ArrayList<>());
+    }
+
+    @Override
+    public void resetTraversalState() {
+        for (Node node : adjList.keySet()) {
+            node.setColor(NodeColor.WHITE);
+            node.setDiscoveryTime(0);
+            node.setFinishTime(0);
+        }
     }
 }

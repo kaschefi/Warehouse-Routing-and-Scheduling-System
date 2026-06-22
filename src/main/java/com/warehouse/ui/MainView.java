@@ -2,7 +2,7 @@ package com.warehouse.ui;
 
 import com.warehouse.algorithm.pathfinding.DijkstraAlgorithm;
 import com.warehouse.algorithm.spanningtree.PrimAlgorithm;
-import com.warehouse.algorithm.sorting.KahnAlgorithm;
+import com.warehouse.algorithm.sorting.TopologicalSort;
 import com.warehouse.service.NetworkDesignService;
 import com.warehouse.service.RoutingService;
 import com.warehouse.service.TaskSchedulingService;
@@ -41,12 +41,12 @@ public class MainView extends BorderPane {
         // Instantiate algorithms
         DijkstraAlgorithm dijkstra = new DijkstraAlgorithm();
         PrimAlgorithm prim = new PrimAlgorithm();
-        KahnAlgorithm kahn = new KahnAlgorithm();
+        TopologicalSort topo = new TopologicalSort();
 
         // Instantiate services
         this.routingService = new RoutingService(dijkstra);
         this.networkDesignService = new NetworkDesignService(routingService.getWarehouseMap(), prim);
-        this.taskSchedulingService = new TaskSchedulingService(kahn);
+        this.taskSchedulingService = new TaskSchedulingService(topo);
         this.robotManagementService = new RobotManagementService();
 
         setupMenu();
