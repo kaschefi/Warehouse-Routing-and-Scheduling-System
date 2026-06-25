@@ -24,7 +24,6 @@ public class DijkstraAlgorithm implements ShortestPathStrategy {
             return new ArrayList<>();
         }
 
-        // Initialize data tracking maps
         Map<Node, Double> distances = new HashMap<>();
         // Tracks the edge used to reach a node
         Map<Node, Edge> parentEdges = new HashMap<>();
@@ -48,18 +47,16 @@ public class DijkstraAlgorithm implements ShortestPathStrategy {
         while (!priorityQueue.isEmpty()) {
             Node current = priorityQueue.poll();
 
-            // Optimization: If we pulled out a node with infinity distance, remaining nodes are unreachable
+            // If we pulled out a node with infinity distance, remaining nodes are unreachable
             if (distances.get(current) == Double.MAX_VALUE) {
                 break;
             }
 
-            // if we reached the goal
             if (current.equals(end)) {
                 pathFound = true;
                 break;
             }
 
-            // Skip processing if we have already evaluated this node completely
             if (settledNodes.contains(current)) {
                 continue;
             }
@@ -77,7 +74,7 @@ public class DijkstraAlgorithm implements ShortestPathStrategy {
                 double newDistance = distances.get(current) + edge.getWeight();
                 if (newDistance < distances.get(neighbor)) {
                     distances.put(neighbor, newDistance);
-                    parentEdges.put(neighbor, edge); // Save the exact route path edge
+                    parentEdges.put(neighbor, edge);
 
                     // update queue position
                     priorityQueue.remove(neighbor);
@@ -90,14 +87,14 @@ public class DijkstraAlgorithm implements ShortestPathStrategy {
         List<Edge> shortestPath = new ArrayList<>();
         if (!pathFound) {
             System.out.println("No viable path exists between selected nodes.");
-            return shortestPath; // Return empty list
+            return shortestPath;
         }
 
         // Trace backward from end node to start node using our parent edges
         Node traceNode = end;
         while (parentEdges.containsKey(traceNode)) {
             Edge routeEdge = parentEdges.get(traceNode);
-            shortestPath.add(0, routeEdge); // Insert at the front to naturally reverse the order
+            shortestPath.add(0, routeEdge);
             traceNode = routeEdge.getSource();
         }
 

@@ -17,7 +17,6 @@ public final class TopologicalSort implements TopologicalSortStrategy {
         Set<Task> discovered = new HashSet<>();
         LinkedList<Task> sortedTasks = new LinkedList<>();
 
-        // Initialize all tasks as WHITE (unvisited)
         for (Task task : tasks) {
             colors.put(task, NodeColor.WHITE);
         }
@@ -33,15 +32,13 @@ public final class TopologicalSort implements TopologicalSortStrategy {
     }
 
     private void dfsVisit(Task task, List<Task> tasks, Map<Task, NodeColor> colors, Set<Task> discovered, LinkedList<Task> sortedTasks) {
-        // Mark as discovered and change color to GRAY
         discovered.add(task);
         colors.put(task, NodeColor.GRAY);
 
-        // Look at tasks that DEPEND on this task
         for (Task dependent : tasks) {
             if (dependent.getDependencies().contains(task)) {
 
-                // Cycle Detection: If a neighbor is GRAY, we have a circular deadlock
+                //If a neighbor is GRAY, we have a circular deadlock
                 if (colors.get(dependent) == NodeColor.GRAY) {
                     throw new IllegalStateException("Cycle detected at task: " + dependent.getName());
                 }
@@ -52,7 +49,6 @@ public final class TopologicalSort implements TopologicalSortStrategy {
             }
         }
 
-        // Mark as fully processed
         colors.put(task, NodeColor.BLACK);
 
         // Push to the front of the list (Reverse finishing order)

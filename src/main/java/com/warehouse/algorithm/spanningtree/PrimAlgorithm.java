@@ -56,12 +56,13 @@ public class PrimAlgorithm implements MinimumSpanningTreeStrategy {
 
             // Evaluate all paths branching out from node u
             for (Edge edge : graph.getNeighbors(u)) {
+                // v is a neighbor we can reach from u
                 Node v = edge.getDestination();
                 double weight = edge.getWeight();
 
                 // If neighbor v is unvisited and this layout path is cheaper than v's current cost
                 if (queue.contains(v) && weight < key.get(v)) {
-                    queue.remove(v); // Remove to trigger re-sorting on re-insertion
+                    queue.remove(v);
                     parent.put(v, u);
                     key.put(v, weight);
                     queue.add(v);
@@ -69,7 +70,6 @@ public class PrimAlgorithm implements MinimumSpanningTreeStrategy {
             }
         }
 
-        // Print total infrastructure cost to console to match assignment specifications
         double totalCost = mst.stream().mapToDouble(Edge::getWeight).sum();
         System.out.printf("Total MST Infrastructure Cost: %.2f%n", totalCost);
 
