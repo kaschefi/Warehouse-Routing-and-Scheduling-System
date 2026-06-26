@@ -1,0 +1,687 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   RoboFlow — Deep Obsidian Matrix Theme
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.root {
+    -fx-background-color: #0B132B;
+    -fx-font-family: "Courier New", "Lucida Console", "Courier", monospace;
+}
+
+/* ── Sidebars ─────────────────────────────────────────────────────────────── */
+
+.left-sidebar {
+    -fx-background-color: #0B132B;
+    -fx-border-color: rgba(91, 192, 190, 0.2);
+    -fx-border-width: 0 1px 0 0;
+    -fx-padding: 12px;
+    -fx-min-width: 155px;
+    -fx-max-width: 220px;
+}
+
+.right-sidebar {
+    -fx-background-color: #0B132B;
+    -fx-border-color: rgba(91, 192, 190, 0.2);
+    -fx-border-width: 0 0 0 1px;
+    -fx-padding: 12px;
+    -fx-min-width: 240px;
+    -fx-max-width: 320px;
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+
+.tactical-card {
+    -fx-background-color: #111827;
+    -fx-border-color: rgba(0, 229, 255, 0.12);
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 12px;
+}
+
+.card-title {
+    -fx-text-fill: #00E5FF;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 4px 0;
+    -fx-letter-spacing: 1.5px;
+}
+
+/* ── Generic Labels ───────────────────────────────────────────────────────── */
+
+.label {
+    -fx-text-fill: #5BC0BE;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+}
+
+/* ── Text Fields ──────────────────────────────────────────────────────────── */
+
+.text-field {
+    -fx-background-color: #080E1F;
+    -fx-text-fill: #00E5FF;
+    -fx-highlight-fill: #00E5FF;
+    -fx-highlight-text-fill: #0B132B;
+    -fx-prompt-text-fill: rgba(91, 192, 190, 0.35);
+    -fx-border-color: rgba(0, 229, 255, 0.30);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 6px 9px;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+}
+
+.text-field:focused {
+    -fx-border-color: #00E5FF;
+    -fx-background-color: #0A1020;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.35), 5, 0.4, 0, 0);
+}
+
+.text-field:hover {
+    -fx-border-color: rgba(0, 229, 255, 0.55);
+}
+
+/* ── Combo Boxes ──────────────────────────────────────────────────────────── */
+
+.combo-box {
+    -fx-background-color: #080E1F;
+    -fx-border-color: rgba(0, 229, 255, 0.30);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+    -fx-padding: 0;
+}
+
+.combo-box:hover {
+    -fx-border-color: rgba(0, 229, 255, 0.55);
+}
+
+.combo-box:showing,
+.combo-box:focused {
+    -fx-border-color: #00E5FF;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.35), 5, 0.4, 0, 0);
+}
+
+.combo-box .list-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 3px 6px;
+}
+
+.combo-box .list-button .arrow {
+    -fx-background-color: #5BC0BE;
+}
+
+.combo-box:hover .list-button .arrow {
+    -fx-background-color: #00E5FF;
+}
+
+.combo-box .cell {
+    -fx-text-fill: #00E5FF;
+    -fx-background-color: transparent;
+    -fx-padding: 5px 8px;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #0A1020;
+    -fx-border-color: rgba(0, 229, 255, 0.4);
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.3), 8, 0.3, 0, 2);
+}
+
+.combo-box-popup .list-view .list-cell {
+    -fx-background-color: #0A1020;
+    -fx-text-fill: #5BC0BE;
+    -fx-padding: 5px 10px;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+}
+
+.combo-box-popup .list-view .list-cell:hover {
+    -fx-background-color: #1C2541;
+    -fx-text-fill: #00FF66;
+}
+
+.combo-box-popup .list-view .list-cell:selected {
+    -fx-background-color: rgba(0, 229, 255, 0.15);
+    -fx-text-fill: #00E5FF;
+}
+
+/* ── List Views ───────────────────────────────────────────────────────────── */
+
+.list-view {
+    -fx-background-color: #080E1F;
+    -fx-border-color: rgba(0, 229, 255, 0.25);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 2px;
+}
+
+.list-view .list-cell {
+    -fx-background-color: #080E1F;
+    -fx-text-fill: #39FF14;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 10px;
+    -fx-padding: 5px 8px;
+}
+
+.list-view .list-cell:filled:selected {
+    -fx-background-color: rgba(0, 255, 102, 0.15);
+    -fx-text-fill: #00FF66;
+    -fx-border-color: transparent transparent rgba(0, 255, 102, 0.3) transparent;
+    -fx-border-width: 1px;
+}
+
+.list-view .list-cell:filled:hover {
+    -fx-background-color: rgba(0, 229, 255, 0.07);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
+.button {
+    -fx-background-color: #111827;
+    -fx-text-fill: #5BC0BE;
+    -fx-border-color: rgba(91, 192, 190, 0.45);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 6px 12px;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #1a2540;
+    -fx-text-fill: #00FF66;
+    -fx-border-color: #00FF66;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 255, 102, 0.35), 6, 0.4, 0, 0);
+}
+
+.button:pressed {
+    -fx-background-color: rgba(0, 255, 102, 0.18);
+    -fx-text-fill: #00FF66;
+    -fx-border-color: #00FF66;
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+.button:focused {
+    -fx-border-color: #00E5FF;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.3), 4, 0.3, 0, 0);
+}
+
+/* Active button states */
+.active-select {
+    -fx-background-color: #00E5FF !important;
+    -fx-text-fill: #0B132B !important;
+    -fx-border-color: #00E5FF !important;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.5), 7, 0.5, 0, 0);
+}
+
+.active-obstacle {
+    -fx-background-color: #FF3333 !important;
+    -fx-text-fill: #ffffff !important;
+    -fx-border-color: #FF3333 !important;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 51, 51, 0.5), 7, 0.5, 0, 0);
+}
+
+.active-station {
+    -fx-background-color: #FFB703 !important;
+    -fx-text-fill: #0B132B !important;
+    -fx-border-color: #FFB703 !important;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 183, 3, 0.5), 7, 0.5, 0, 0);
+}
+
+.active-dropzone {
+    -fx-background-color: #00FF66 !important;
+    -fx-text-fill: #0B132B !important;
+    -fx-border-color: #00FF66 !important;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 255, 102, 0.5), 7, 0.5, 0, 0);
+}
+
+.active-robot {
+    -fx-background-color: #39FF14 !important;
+    -fx-text-fill: #0B132B !important;
+    -fx-border-color: #39FF14 !important;
+    -fx-effect: dropshadow(three-pass-box, rgba(57, 255, 20, 0.5), 7, 0.5, 0, 0);
+}
+
+.clear-btn {
+    -fx-background-color: #111827;
+    -fx-text-fill: #FF3333;
+    -fx-border-color: rgba(255, 51, 51, 0.4);
+}
+
+.clear-btn:hover {
+    -fx-background-color: #2a0f15;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #FF3333;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 51, 51, 0.4), 6, 0.5, 0, 0);
+}
+
+/* ── Menu Bar ─────────────────────────────────────────────────────────────── */
+
+.menu-bar {
+    -fx-background-color: #060C1A;
+    -fx-border-color: rgba(0, 229, 255, 0.15);
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 2px 8px;
+}
+
+.menu-bar .label {
+    -fx-text-fill: #5BC0BE;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.menu-bar .menu:hover,
+.menu-bar .menu:showing {
+    -fx-background-color: #1C2541;
+}
+
+.menu-bar .menu:hover .label,
+.menu-bar .menu:showing .label {
+    -fx-text-fill: #00FF66;
+}
+
+.context-menu {
+    -fx-background-color: #0A1020;
+    -fx-border-color: rgba(0, 229, 255, 0.25);
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.2), 8, 0.3, 0, 2);
+}
+
+.menu-item .label {
+    -fx-text-fill: #5BC0BE;
+    -fx-font-size: 11px;
+}
+
+.menu-item:focused {
+    -fx-background-color: rgba(0, 255, 102, 0.15);
+}
+
+.menu-item:focused .label {
+    -fx-text-fill: #00FF66;
+}
+
+.separator:horizontal .line {
+    -fx-border-color: rgba(0, 229, 255, 0.15);
+    -fx-border-width: 1px 0 0 0;
+}
+
+/* ── Status Bar ───────────────────────────────────────────────────────────── */
+
+.status-bar-pane {
+    -fx-background-color: #060C1A;
+    -fx-border-color: rgba(0, 229, 255, 0.15);
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 6px 15px;
+    -fx-min-height: 28px;
+}
+
+.status-default {
+    -fx-text-fill: #39FF14;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(three-pass-box, rgba(57, 255, 20, 0.55), 5, 0.4, 0, 0);
+}
+
+.status-calculation {
+    -fx-text-fill: #FFB703;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 183, 3, 0.55), 5, 0.4, 0, 0);
+}
+
+.status-error {
+    -fx-text-fill: #FF3333;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 51, 51, 0.55), 5, 0.4, 0, 0);
+}
+
+/* ── Warehouse Grid ───────────────────────────────────────────────────────── */
+
+.warehouse-grid-pane {
+    -fx-background-color: #060C1A;
+    -fx-padding: 18px;
+}
+
+/* ── Task Progress Bar ────────────────────────────────────────────────────── */
+
+.task-progress-bar {
+    -fx-pref-width: 60px;
+    -fx-min-height: 8px;
+    -fx-max-height: 8px;
+}
+
+.task-progress-bar .track {
+    -fx-background-color: #080E1F;
+    -fx-border-color: rgba(91, 192, 190, 0.25);
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+}
+
+.task-progress-bar .bar {
+    -fx-background-color: linear-gradient(to right, #00E5FF, #00FF66);
+    -fx-background-radius: 4px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 255, 102, 0.4), 4, 0.4, 0, 0);
+}
+
+/* ── Deadlock Warning Label ───────────────────────────────────────────────── */
+
+.deadlock-warning-label {
+    -fx-text-fill: #FF3333;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-padding: 5px;
+    -fx-border-color: #FF3333;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-color: rgba(255, 51, 51, 0.12);
+}
+
+/* ── SplitPane Styling ────────────────────────────────────────────────────── */
+
+.main-split-pane {
+    -fx-background-color: #0B132B;
+    -fx-padding: 0;
+}
+
+.main-split-pane>.split-pane-divider {
+    -fx-background-color: rgba(0, 229, 255, 0.18);
+    -fx-padding: 0 2px;
+}
+
+.main-split-pane>.split-pane-divider:hover {
+    -fx-background-color: rgba(0, 229, 255, 0.45);
+}
+
+.main-split-pane>.split-pane-divider:pressed {
+    -fx-background-color: #00E5FF;
+}
+
+/* ── Sidebar ScrollPane ──────────────────────────────────────────────────── */
+
+.sidebar-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.sidebar-scroll>.viewport {
+    -fx-background-color: transparent;
+}
+
+.sidebar-scroll .scroll-bar:vertical {
+    -fx-background-color: #060C1A;
+    -fx-pref-width: 6px;
+}
+
+.sidebar-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(0, 229, 255, 0.25);
+    -fx-background-radius: 3px;
+}
+
+.sidebar-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(0, 229, 255, 0.5);
+}
+
+.sidebar-scroll .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.sidebar-scroll .scroll-bar:vertical .increment-button,
+.sidebar-scroll .scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-background-color: transparent;
+}
+
+.sidebar-scroll .scroll-bar:horizontal {
+    -fx-pref-height: 0;
+    -fx-opacity: 0;
+}
+
+/* ── Task robot badge ────────────────────────────────────────────────────── */
+
+.task-robot-badge {
+    -fx-background-color: rgba(0, 229, 255, 0.12);
+    -fx-text-fill: #00E5FF;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-border-color: rgba(0, 229, 255, 0.35);
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-padding: 1px 5px;
+}
+
+/* ── Action button variants ──────────────────────────────────────────────── */
+
+.btn-add-task {
+    -fx-background-color: rgba(0, 229, 255, 0.10);
+    -fx-text-fill: #00E5FF;
+    -fx-border-color: rgba(0, 229, 255, 0.45);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.btn-add-task:hover {
+    -fx-background-color: rgba(0, 229, 255, 0.22);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #00E5FF;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.35), 6, 0.4, 0, 0);
+}
+
+.btn-launch {
+    -fx-background-color: rgba(57, 255, 20, 0.10);
+    -fx-text-fill: #39FF14;
+    -fx-border-color: rgba(57, 255, 20, 0.55);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-weight: bold;
+}
+
+.btn-launch:hover {
+    -fx-background-color: rgba(57, 255, 20, 0.20);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #39FF14;
+    -fx-effect: dropshadow(three-pass-box, rgba(57, 255, 20, 0.4), 8, 0.5, 0, 0);
+}
+
+.btn-launch:pressed {
+    -fx-background-color: rgba(57, 255, 20, 0.30);
+}
+
+.btn-stop {
+    -fx-background-color: rgba(255, 51, 51, 0.08);
+    -fx-text-fill: #FF3333;
+    -fx-border-color: rgba(255, 51, 51, 0.55);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-weight: bold;
+}
+
+.btn-stop:hover {
+    -fx-background-color: rgba(255, 51, 51, 0.18);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #FF3333;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 51, 51, 0.4), 8, 0.5, 0, 0);
+}
+
+.btn-stop:pressed {
+    -fx-background-color: rgba(255, 51, 51, 0.28);
+}
+
+.btn-stop:disabled {
+    -fx-opacity: 0.4;
+    -fx-cursor: default;
+}
+
+.btn-resume {
+    -fx-background-color: rgba(0, 229, 255, 0.08);
+    -fx-text-fill: #00E5FF;
+    -fx-border-color: rgba(0, 229, 255, 0.55);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-weight: bold;
+}
+
+.btn-resume:hover {
+    -fx-background-color: rgba(0, 229, 255, 0.18);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #00E5FF;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.4), 8, 0.5, 0, 0);
+}
+
+.btn-resume:pressed {
+    -fx-background-color: rgba(0, 229, 255, 0.28);
+}
+
+/* ── Algorithmic HUD Labels ───────────────────────────────────────────────── */
+
+.hud-key-label {
+    -fx-text-fill: rgba(91, 192, 190, 0.75);
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 10px;
+}
+
+.hud-value-label {
+    -fx-text-fill: #00E5FF;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+/* Kahn status color variants */
+.hud-status-idle {
+    -fx-text-fill: rgba(91, 192, 190, 0.6) !important;
+}
+
+.hud-status-simulating {
+    -fx-text-fill: #FFB703 !important;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 183, 3, 0.5), 4, 0.4, 0, 0);
+}
+
+.hud-status-deadlock {
+    -fx-text-fill: #FF3333 !important;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 51, 51, 0.5), 4, 0.4, 0, 0);
+}
+
+/* ── Slider Styling ───────────────────────────────────────────────────────── */
+.slider {
+    -fx-pref-width: 100%;
+}
+
+.slider .track {
+    -fx-background-color: #080E1F;
+    -fx-border-color: rgba(0, 229, 255, 0.25);
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-pref-height: 6px;
+}
+
+.slider .thumb {
+    -fx-background-color: #00E5FF;
+    -fx-background-radius: 6px;
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.5), 4, 0.4, 0, 0);
+}
+
+.slider .thumb:hover {
+    -fx-background-color: #00FF66;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 255, 102, 0.6), 6, 0.5, 0, 0);
+}
+
+.slider .axis {
+    -fx-tick-label-fill: #5BC0BE;
+    -fx-tick-label-font-size: 8px;
+    -fx-tick-label-font-family: "Courier New", "Lucida Console", monospace;
+}
+
+.slider .axis .axis-tick-mark {
+    -fx-stroke: rgba(0, 229, 255, 0.3);
+}
+
+/* ── Load Demo Button (Neon Accent Border) ────────────────────────────────── */
+.load-demo-btn {
+    -fx-background-color: #111827;
+    -fx-text-fill: #00E5FF;
+    -fx-border-color: #00E5FF;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.3), 5, 0.4, 0, 0);
+}
+
+.load-demo-btn:hover {
+    -fx-background-color: #00E5FF;
+    -fx-text-fill: #0B132B;
+    -fx-border-color: #00E5FF;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.7), 8, 0.5, 0, 0);
+}
+
+.load-demo-btn:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+/* ── System Terminal Pane ─────────────────────────────────────────────────── */
+.terminal-log-pane {
+    -fx-background-color: #060C1A;
+    -fx-border-color: rgba(0, 229, 255, 0.2);
+    -fx-border-width: 1px 0 0 0;
+    -fx-min-height: 120px;
+    -fx-max-height: 180px;
+}
+
+.terminal-header-label {
+    -fx-background-color: #080E1F;
+    -fx-text-fill: #00E5FF;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 12px;
+    -fx-border-color: rgba(0, 229, 255, 0.1);
+    -fx-border-width: 0 0 1px 0;
+}
+
+.terminal-text-area {
+    -fx-control-inner-background: #030712;
+    -fx-background-color: #030712;
+    -fx-text-fill: #39FF14;
+    -fx-font-family: "Courier New", "Lucida Console", monospace;
+    -fx-font-size: 11px;
+}
+
+.terminal-text-area .content {
+    -fx-background-color: #030712;
+    -fx-padding: 6px;
+}
+
+.terminal-text-area .viewport {
+    -fx-background-color: #030712;
+}
